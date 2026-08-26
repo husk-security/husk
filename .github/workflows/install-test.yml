@@ -22,9 +22,6 @@ name: install-test
 # change to it must be exercised automatically. `pull_request`, never
 # `pull_request_target`: these jobs execute the proposed installer, so they must
 # never see a privileged token or a self-hosted runner.
-#
-# Every job needs a GitHub-hosted runner, so the pull_request and push jobs are
-# gated on the repository being public and begin running when it is.
 on:
   pull_request:
     paths:
@@ -56,9 +53,6 @@ concurrency:
 jobs:
   shellcheck:
     name: shellcheck
-    if: >-
-      github.event.repository.private != true ||
-      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
@@ -74,9 +68,7 @@ jobs:
 
   linux-matrix:
     name: linux (${{ matrix.image }})
-    if: >-
-      (github.event_name == 'pull_request' || github.event_name == 'push') &&
-      github.event.repository.private != true
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -102,9 +94,7 @@ jobs:
 
   macos:
     name: macos (${{ matrix.os }})
-    if: >-
-      (github.event_name == 'pull_request' || github.event_name == 'push') &&
-      github.event.repository.private != true
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

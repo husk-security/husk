@@ -73,7 +73,7 @@ jobs:
     # The self-hosted pool is Linux-only, so a manual run covers the two Linux
     # targets; the macOS legs build only on a tag push, which runs
     # GitHub-hosted.
-    runs-on: ${{ github.event_name == 'workflow_dispatch' && 'husk-ci' || matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
