@@ -1,8 +1,9 @@
 # Signed, provenance-bearing release builds for the husk binary.
 #
 # Each release carries, per target: a `.tar.gz` of the `husk` binary, a
-# per-archive SHA-256 file, a cosign signature (`.sig`) and certificate
-# (`.pem`), and a SLSA build-provenance bundle (`.intoto.jsonl`).
+# per-archive SHA-256 file, a cosign Sigstore bundle (`.sigstore.json`, carrying
+# the signature, certificate, and transparency-log proof), and a SLSA
+# build-provenance bundle (`.intoto.jsonl`).
 #
 # Trust model: cosign signs keyless through Sigstore (Fulcio + Rekor), so there
 # is no long-lived private key to leak. The signing identity is this workflow's
@@ -301,8 +302,7 @@ jobs:
             echo "Signing ${f}"
             cosign sign-blob \
               --yes \
-              --output-signature "${f}.sig" \
-              --output-certificate "${f}.pem" \
+              --bundle "${f}.sigstore.json" \
               "${f}"
           done
           echo "Signed artifact set:"
@@ -316,8 +316,7 @@ jobs:
             dist/install.sh
             dist/*.sha256
             dist/SHA256SUMS
-            dist/*.sig
-            dist/*.pem
+            dist/*.sigstore.json
           fail_on_unmatched_files: true
           generate_release_notes: true
 
