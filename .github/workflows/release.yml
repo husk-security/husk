@@ -15,17 +15,21 @@
 # Cutting a release:
 #   1. Land everything on `main`. Bump `version` in Cargo.toml, flake.nix, and
 #      server.json (both `version` and `packages[].version`) in lockstep with
-#      the tag, and keep Cargo.lock current; the build uses `--locked`.
-#   2. `git tag vX.Y.Z && git push origin vX.Y.Z`. The tag must resolve to a
-#      commit reachable from `origin/main`. The matrix builds every target, then
-#      the publish job signs each archive and SHA256SUMS, generates provenance,
-#      and creates the GitHub Release.
+#      the tag, and keep Cargo.lock current; the build uses `--locked`. Rewrite
+#      RELEASE_NOTES.md, which is published verbatim as the release body; the
+#      validation step refuses a tag the notes never mention.
+#   2. `git tag -a vX.Y.Z -m "husk X.Y.Z" && git push origin vX.Y.Z`. Annotated,
+#      not lightweight: a lightweight tag has no tagger, so GitHub credits it to
+#      whoever authored the commit main happened to point at. The tag must
+#      resolve to a commit reachable from `origin/main`. The matrix builds every
+#      target, then the publish job signs each archive and SHA256SUMS, generates
+#      provenance, and creates the GitHub Release.
 #   3. To build without releasing, trigger `workflow_dispatch` on a branch. The
 #      publish job is skipped.
 #
 # The allowed-actor checks on every publishing job, together with the fresh
 # remote-ref validation in "Validate release ref", are the publication boundary.
-# A dispatch runs branch code on the self-hosted pool and the tag jobs hold
+# A dispatch runs selected branch code and the tag jobs hold
 # write, attestation, and OIDC permissions, so both the original event and any
 # re-run must be initiated by an allowed maintainer.
 #
@@ -66,14 +70,13 @@ env:
 jobs:
   build:
     name: build (${{ matrix.target }})
-    # A manual run executes selected branch code on the self-hosted pool, so
+    # A manual run executes selected branch code, so
     # both the original event and any re-run require an allowed human.
     if: >-
       (github.actor == 'ErikFrankling' || github.actor == 'PatrikTang') &&
       (github.triggering_actor == 'ErikFrankling' || github.triggering_actor == 'PatrikTang')
-    # The self-hosted pool is Linux-only, so a manual run covers the two Linux
-    # targets; the macOS legs build only on a tag push, which runs
-    # GitHub-hosted.
+    # A manual run covers the two Linux
+    # targets; the macOS legs build only on a tag push.
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -81,8 +84,7 @@ jobs:
         # The legs live in JSON because a job-level `if` cannot see the matrix
         # context and `exclude` cannot filter an include-only matrix. The
         # aarch64 leg cross-compiles on x86 and needs the cross linker from apt;
-        # the manual legs also install build-essential, because the self-hosted
-        # image has no C toolchain.
+        # the manual legs also install build-essential.
         include: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '[{"target":"x86_64-unknown-linux-gnu","os":"ubuntu-latest","apt":"build-essential"},{"target":"aarch64-unknown-linux-gnu","os":"ubuntu-latest","linker":"aarch64-linux-gnu-gcc","apt":"build-essential gcc-aarch64-linux-gnu"}]' || '[{"target":"x86_64-unknown-linux-gnu","os":"ubuntu-latest"},{"target":"aarch64-unknown-linux-gnu","os":"ubuntu-latest","linker":"aarch64-linux-gnu-gcc","apt":"gcc-aarch64-linux-gnu"},{"target":"x86_64-apple-darwin","os":"macos-15-intel"},{"target":"aarch64-apple-darwin","os":"macos-15"}]') }}
     steps:
       - name: Check out source
@@ -218,6 +220,14 @@ jobs:
             exit 1
           fi
 
+          # RELEASE_NOTES.md is published verbatim as the release body, so
+          # stale notes would ship silently. Requiring the version to appear in
+          # them makes forgetting to rewrite them a failed release instead.
+          if ! grep -qF "${expected}" RELEASE_NOTES.md; then
+            echo "::error::RELEASE_NOTES.md never mentions ${expected}; rewrite it for this release"
+            exit 1
+          fi
+
           git_auth="$(
             printf 'x-access-token:%s' "${REPOSITORY_TOKEN}" |
               base64 |
@@ -318,7 +328,7 @@ jobs:
             dist/SHA256SUMS
             dist/*.sigstore.json
           fail_on_unmatched_files: true
-          generate_release_notes: true
+          body_path: RELEASE_NOTES.md
 
   npm-package:
     name: build npm packages
@@ -431,7 +441,6 @@ jobs:
         with:
           node-version: 24
           package-manager-cache: false
-          registry-url: "https://registry.npmjs.org"
 
       - name: Install pinned npm
         # Trusted publishing needs npm >=11.5.1; pin an exact version so the
