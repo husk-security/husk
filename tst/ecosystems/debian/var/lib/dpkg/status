@@ -1,0 +1,50 @@
+Package: libssl3
+Status: install ok installed
+Priority: optional
+Section: libs
+Installed-Size: 6362
+Maintainer: Debian OpenSSL Team <pkg-openssl-devel@lists.alioth.debian.org>
+Architecture: amd64
+Multi-Arch: same
+Source: openssl
+Version: 3.0.11-1~deb12u2
+Depends: libc6 (>= 2.34)
+Description: Secure Sockets Layer toolkit - shared libraries
+ This package is part of the OpenSSL project's implementation of the SSL
+ and TLS cryptographic protocols for secure communication over the Internet.
+
+Package: zlib1g
+Status: install ok installed
+Priority: required
+Section: libs
+Installed-Size: 169
+Maintainer: Mark Brown <broonie@debian.org>
+Architecture: amd64
+Multi-Arch: same
+Source: zlib (1:1.2.13.dfsg-1)
+Version: 1:1.2.13.dfsg-1
+Depends: libc6 (>= 2.14)
+Description: compression library - runtime
+
+Package: liblzma5
+Status: install ok installed
+Priority: required
+Section: libs
+Installed-Size: 285
+Maintainer: Jonathan Nieder <jrnieder@gmail.com>
+Architecture: amd64
+Multi-Arch: same
+Source: xz-utils
+Version: 5.4.1-0.2
+Depends: libc6 (>= 2.34)
+Description: XZ-format compression library
+
+Package: nano
+Status: deinstall ok config-files
+Priority: standard
+Section: editors
+Installed-Size: 868
+Maintainer: Jordi Mallach <jordi@debian.org>
+Architecture: amd64
+Version: 7.2-1
+Description: small, friendly text editor inspired by Pico

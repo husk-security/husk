@@ -1,0 +1,12 @@
+[wrap-file]
+directory = zlib-1.3.1
+source_url = https://zlib.net/fossils/zlib-1.3.1.tar.gz
+source_filename = zlib-1.3.1.tar.gz
+source_hash = 9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23
+patch_url = https://wrapdb.mesonbuild.com/v2/zlib_1.3.1-1/get_patch
+patch_filename = zlib_1.3.1-1_patch.zip
+patch_hash = a986885dd7d2adb20a2d8f9bb585d59b6306e716ae5deb43c79547c63a06b32c
+wrapdb_version = 1.3.1-1
+
+[provide]
+dependency_names = zlib

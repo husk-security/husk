@@ -1,0 +1,12 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.8/schema.json",
+  "files": { "includes": ["src/**", "*.ts", "!src/**/*.css"] },
+  "formatter": { "enabled": true, "indentStyle": "space" },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "a11y": { "noSvgWithoutTitle": "off", "noLabelWithoutControl": "off" }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "version": "8.99.0",
+  "homepage": "https://curl.se/",
+  "license": "MIT",
+  "architecture": {
+    "64bit": { "url": "https://example/curl.zip", "hash": "deadbeef" }
+  }
+}

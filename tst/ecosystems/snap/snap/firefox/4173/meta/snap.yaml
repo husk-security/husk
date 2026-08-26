@@ -1,0 +1,13 @@
+name: firefox
+version: 125.0.3-1
+summary: Mozilla Firefox web browser
+type: app
+base: core22
+grade: stable
+confinement: strict
+apps:
+  firefox:
+    command: usr/lib/firefox/firefox.launcher
+    plugs:
+    - network
+    - home

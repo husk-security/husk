@@ -1,0 +1,66 @@
+P:musl
+V:1.2.5-r0
+A:x86_64
+S:407312
+I:651264
+T:the musl c library (libc) implementation
+U:https://musl.libc.org/
+L:MIT
+o:musl
+m:Timo Teras <timo.teras@iki.fi>
+t:1719569011
+c:6a59e0103c4e8f24f4cae65ce4f4b27aaf7118ae
+p:so:libc.musl-x86_64.so.1=1
+F:lib
+R:ld-musl-x86_64.so.1
+R:libc.musl-x86_64.so.1
+
+P:busybox
+V:1.36.1-r29
+A:x86_64
+S:507122
+I:962560
+T:Size optimized toolbox of many common UNIX utilities
+U:https://busybox.net/
+L:GPL-2.0-only
+o:busybox
+m:Soeren Tempel <soeren+alpine@soeren-tempel.net>
+t:1718714632
+c:5f8f0b3c9e8f1a2b3c4d5e6f708192a3b4c5d6e7
+D:so:libc.musl-x86_64.so.1 /bin/sh
+p:cmd:busybox=1.36.1-r29 cmd:sh=1.36.1-r29
+F:bin
+R:busybox
+F:etc
+R:securetty
+
+P:zlib
+V:1.3.1-r1
+A:x86_64
+S:54515
+I:110592
+T:A compression/decompression Library
+U:https://zlib.net/
+L:Zlib
+o:zlib
+m:Natanael Copa <ncopa@alpinelinux.org>
+t:1715680392
+c:1234567890abcdef1234567890abcdef12345678
+p:so:libz.so.1=1.3.1
+F:lib
+R:libz.so.1.3.1
+
+P:ca-certificates-bundle
+V:20240705-r0
+A:x86_64
+S:128056
+I:233472
+T:Pre generated bundle of Mozilla certificates
+U:https://www.mozilla.org/en-US/about/governance/policies/security-group/certs/
+L:MPL-2.0 AND MIT
+o:ca-certificates
+m:Natanael Copa <ncopa@alpinelinux.org>
+t:1720196881
+c:abcdef1234567890abcdef1234567890abcdef12
+F:etc/ssl/certs
+R:ca-certificates.crt

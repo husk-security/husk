@@ -1,0 +1,10 @@
+{
+  "pins": [
+    {
+      "identity": "alamofire",
+      "location": "https://github.com/Alamofire/Alamofire.git",
+      "state": { "version": "5.6.4" }
+    }
+  ],
+  "version": 2
+}

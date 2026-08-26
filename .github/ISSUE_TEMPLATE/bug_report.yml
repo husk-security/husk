@@ -1,0 +1,49 @@
+name: Bug report
+description: Something husk did wrong, crashed on, or missed.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For a vulnerability **in husk itself**, do not open an issue. See
+        [SECURITY.md](https://github.com/husk-security/husk/blob/main/SECURITY.md).
+
+        `tst/` holds intentionally unsafe fixtures. Findings against that
+        directory are expected, not bugs.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran, what you expected, and what you got instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: husk version
+      description: Output of `husk --version`.
+      placeholder: husk 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: OS and architecture
+      placeholder: Ubuntu 24.04 x86_64 / macOS 15 arm64
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which surface
+      options: [CLI, TUI, web UI, MCP server, install script, other]
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: |
+        `husk scan --json` around the problem, or the error text. Redact
+        anything private: paths, package names, and hostnames can identify you.
+      render: shell

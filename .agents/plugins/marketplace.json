@@ -1,0 +1,12 @@
+{
+  "name": "husk",
+  "interface": { "displayName": "Husk" },
+  "plugins": [
+    {
+      "name": "husk",
+      "source": { "source": "local", "path": "./integrations/plugin" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_USE" },
+      "category": "Security"
+    }
+  ]
+}

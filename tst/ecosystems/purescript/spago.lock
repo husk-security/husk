@@ -1,0 +1,74 @@
+{
+  "workspace": {
+    "packages": {
+      "my-app": {
+        "path": "./",
+        "core": {
+          "dependencies": [
+            "aff",
+            "prelude",
+            "console"
+          ]
+        },
+        "test": {
+          "dependencies": [
+            "spec"
+          ]
+        }
+      }
+    },
+    "package_set": {
+      "address": {
+        "registry": "75.3.0"
+      },
+      "compiler": ">=0.15.15 <0.16.0",
+      "content": {
+        "aff": "8.0.0",
+        "console": "6.1.0",
+        "effect": "4.0.0",
+        "prelude": "6.0.1"
+      },
+      "extra_packages": {}
+    }
+  },
+  "packages": {
+    "aff": {
+      "type": "registry",
+      "version": "8.0.0",
+      "integrity": "sha256-9BRIrSdRoYybfiUmBqgKJ66cPqxYHb277bVWQMn/9sg=",
+      "dependencies": [
+        "effect",
+        "either",
+        "prelude"
+      ]
+    },
+    "console": {
+      "type": "registry",
+      "version": "6.1.0",
+      "integrity": "sha256-CK4Dv2bptcaZUgNHGdSMM3DG13Z58XLeKQ/PvkSn3qQ=",
+      "dependencies": [
+        "effect",
+        "prelude"
+      ]
+    },
+    "prelude": {
+      "type": "registry",
+      "version": "6.0.1",
+      "integrity": "sha256-o8p6SLYmVPqzXZhQFd2hGAWEwBoXl1swxLG/scpJ0V0=",
+      "dependencies": []
+    },
+    "my-git-lib": {
+      "type": "git",
+      "url": "https://github.com/example/purescript-my-git-lib.git",
+      "rev": "035a51d02ba9f8b70c3ffd9fe31a3f5bed19941c",
+      "subdir": "lib",
+      "dependencies": [
+        "prelude"
+      ]
+    },
+    "my-local": {
+      "type": "local",
+      "path": "../local-lib"
+    }
+  }
+}

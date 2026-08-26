@@ -1,0 +1,23 @@
+{
+  "extensions": {
+    "settings": {
+      "cjpalhdlnbpafiamejdnhcphjbkeiagm": {
+        "manifest": { "name": "uBlock Origin", "version": "1.62.0", "manifest_version": 3 },
+        "state": 1,
+        "location": 1,
+        "from_webstore": true,
+        "path": "cjpalhdlnbpafiamejdnhcphjbkeiagm/1.62.0_0",
+        "first_install_time": "13380000000000000",
+        "cws-info": { "is_present": true }
+      },
+      "abcdefghijklmnopabcdefghijklmnop": {
+        "manifest": { "name": "Sketchy Side-Loaded Tool", "version": "0.1" },
+        "state": 1,
+        "location": 4,
+        "from_webstore": false,
+        "path": "/home/user/dev/my-ext"
+      }
+    }
+  },
+  "super_mac": "ABCDdeadbeefhmac"
+}

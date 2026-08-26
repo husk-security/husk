@@ -1,0 +1,15 @@
+{
+  "name": "jquery",
+  "version": "3.4.1",
+  "main": "dist/jquery.js",
+  "license": "MIT",
+  "_release": "3.4.1",
+  "_resolution": {
+    "type": "version",
+    "tag": "3.4.1",
+    "commit": "97c5ff0456cccc8ce5e5e22bb7df9319b8a9adb9"
+  },
+  "_source": "https://github.com/jquery/jquery-dist.git",
+  "_target": "^3.4.0",
+  "_originalSource": "jquery"
+}

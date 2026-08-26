@@ -1,0 +1,6 @@
+{
+  "bucket": "main",
+  "architecture": "64bit",
+  "url": "https://github.com/git-for-windows/git/releases/download/v2.54.0.windows.1/PortableGit-2.54.0-64-bit.7z.exe#/dl.7z",
+  "hold": false
+}

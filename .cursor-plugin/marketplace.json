@@ -1,0 +1,14 @@
+{
+  "name": "husk",
+  "owner": { "name": "Husk" },
+  "metadata": {
+    "description": "The husk security scanner, packaged for Cursor."
+  },
+  "plugins": [
+    {
+      "name": "husk",
+      "source": "./integrations/plugin",
+      "description": "Connect Cursor to the locally installed husk security scanner: registers the husk MCP server and a skill covering the husk CLI and MCP output."
+    }
+  ]
+}

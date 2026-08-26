@@ -1,0 +1,8 @@
+# rpm-manifest.txt  (output of: rpm -qa --qf '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}\n')
+openssl-3.0.7-18.el9_2.x86_64
+bind-32:9.10.2-2.P1.fc22.x86_64
+perl-File-Path-2.18-450.fc38.noarch
+python3-3.11.2-2.el9.x86_64
+glibc-2.34-60.el9_2.7.x86_64
+kernel-headers-5.14.0-284.11.1.el9_2.x86_64
+gpg-pubkey-fd431d51-4ae0493b

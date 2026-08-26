@@ -1,0 +1,14 @@
+name = "Acme Inventory Sync"
+client_id = "a61950a2cbd5f32876b0b55587ec7a27"
+application_url = "https://app.acme.test/"
+embedded = true
+handle = "acme-inventory-sync"
+
+[access_scopes]
+scopes = "read_products,write_products"
+
+[webhooks]
+api_version = "2025-04"
+
+[build]
+automatically_update_urls_on_dev = true

@@ -1,0 +1,152 @@
+@import "tailwindcss";
+/* Brand tokens from @huskdev/tokens (github.com/husk-security/husk-ui), the
+   canonical brand-token package, vendored so this repo is self-contained. */
+@import "@huskdev/tokens/tokens.css";
+@import "@huskdev/tokens/tailwind-theme.css";
+@source "../node_modules/@huskdev/ui/dist";
+
+/* Brand fonts: self-hosted via Fontsource (Geist + Geist Mono, variable). */
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+/* Assert the brand families so the @theme (layered) + tokens.css (unlayered)
+   cascade lands on Geist, not the OS default. Mirrors the platform app.css. */
+@theme {
+  --font-sans:
+    "Geist Variable", "Geist", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-mono:
+    "Geist Mono Variable", "Geist Mono", ui-monospace, "SFMono-Regular", Menlo,
+    Consolas, monospace;
+  --font-weight-normal: 400;
+  --font-weight-medium: 450;
+  --font-weight-semibold: 350;
+  --font-weight-bold: 350;
+}
+:root {
+  --font-sans:
+    "Geist Variable", "Geist", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-mono:
+    "Geist Mono Variable", "Geist Mono", ui-monospace, "SFMono-Regular", Menlo,
+    Consolas, monospace;
+  --font-weight-normal: 400;
+  --font-weight-medium: 450;
+  --font-weight-semibold: 350;
+  --font-weight-bold: 350;
+}
+
+/* Geist Mono ligates `--` into a single long dash, so a copyable `--flag`
+   renders as something the reader cannot retype. Commands are data here. */
+code,
+pre,
+kbd,
+samp,
+.font-mono,
+[class*="font-mono"] {
+  font-variant-ligatures: none;
+}
+
+@utility focus-ring {
+  &:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Husk identity hover tooltip: a soft rise-and-settle from the pointer edge,
+   scoped to Radix's tooltip-only open states (`delayed-open`/`instant-open`)
+   so Select/Dialog poppers (which use plain `open`) are untouched. Origin is
+   the popper's computed transform-origin, so it grows from the trigger side.
+   Enter-only: Radix unmounts on close, so an exit anim isn't worth the
+   shared-`closed`-state scope juggling. */
+/* Indeterminate progress for in-flight actions with unknown duration (the
+   one-click dependency update button while the package manager runs). */
+@keyframes husk-progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(350%);
+  }
+}
+
+@keyframes husk-tooltip-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+[data-radix-popper-content-wrapper] > [data-state="delayed-open"],
+[data-radix-popper-content-wrapper] > [data-state="instant-open"] {
+  transform-origin: var(--radix-popper-transform-origin);
+  animation: husk-tooltip-in 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-radix-popper-content-wrapper] > [data-state="delayed-open"],
+  [data-radix-popper-content-wrapper] > [data-state="instant-open"] {
+    animation: none;
+  }
+}
+
+/* react-diff-view themes through its own custom properties, so point those at
+   the brand tokens rather than fighting its classes. It draws no +/- sign of
+   its own, so add one: a fix preview has to read in a screenshot, in a
+   monochrome terminal, and to a colour-blind reader. */
+.husk-diff {
+  --diff-font-family: var(--font-mono);
+  --diff-background-color: transparent;
+  --diff-text-color: var(--fg-muted);
+  --diff-code-insert-background-color: var(--success-tint);
+  --diff-code-insert-text-color: var(--success);
+  --diff-code-delete-background-color: var(--danger-tint);
+  --diff-code-delete-text-color: var(--danger);
+  --diff-gutter-insert-background-color: var(--success-tint);
+  --diff-gutter-delete-background-color: var(--danger-tint);
+  font-size: 11.5px;
+}
+.husk-diff .diff-line {
+  line-height: 1.55;
+}
+.husk-diff .diff-gutter {
+  cursor: default;
+  color: var(--fg-subtle);
+}
+.husk-diff .diff-gutter-col {
+  width: 3.5ch;
+}
+.husk-diff .diff-code {
+  padding-left: 0;
+  /* The library wraps, so one long line makes its row two or four times the
+     height of every other row. The box already scrolls horizontally; a diff
+     row is a fixed-height line. */
+  white-space: pre;
+}
+.husk-diff .diff-code::before {
+  content: " ";
+  display: inline-block;
+  width: 1.6ch;
+  opacity: 0.55;
+}
+.husk-diff .diff-code-insert::before {
+  content: "+";
+}
+.husk-diff .diff-code-delete::before {
+  content: "-";
+}

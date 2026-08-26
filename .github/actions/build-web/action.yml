@@ -1,0 +1,24 @@
+# Builds the Vite front-end (web/dist) that the default `web` Cargo feature
+# embeds. web/dist is gitignored, so every job compiling the crate with default
+# features runs this first. A --no-default-features build does not need it.
+name: Build web UI
+description: Install web/ deps and build the embedded Vite front-end into web/dist.
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        # Keep in lockstep with the `web` job in ci.yml.
+        node-version: "24.16.0"
+        cache: npm
+        cache-dependency-path: web/package-lock.json
+
+    - name: Install web dependencies
+      shell: bash
+      run: npm --prefix web ci
+
+    - name: Build web/dist
+      shell: bash
+      run: npm --prefix web run build

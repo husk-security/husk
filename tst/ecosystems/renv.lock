@@ -1,0 +1,6 @@
+{
+  "R": { "Version": "4.2.0" },
+  "Packages": {
+    "ggplot2": { "Package": "ggplot2", "Version": "3.4.0", "Source": "Repository" }
+  }
+}

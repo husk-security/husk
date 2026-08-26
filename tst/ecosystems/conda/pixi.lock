@@ -1,0 +1,23 @@
+version: 6
+environments:
+  default:
+    channels:
+    - url: https://conda.anaconda.org/conda-forge/
+    packages:
+      linux-64:
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/numpy-1.26.4-py312h7d8d0a2_0.conda
+      - pypi: https://files.pythonhosted.org/packages/.../requests-2.31.0-py3-none-any.whl
+packages:
+- conda: https://conda.anaconda.org/conda-forge/linux-64/numpy-1.26.4-py312h7d8d0a2_0.conda
+  name: numpy
+  version: 1.26.4
+  build: py312h7d8d0a2_0
+  subdir: linux-64
+  sha256: 2a3b4c5d6e7f8091a2b3c4d5e6f70819a2b3c4d5e6f70819a2b3c4d5e6f70819
+  depends:
+  - libgcc-ng >=12
+  - python >=3.12,<3.13.0a0
+- pypi: https://files.pythonhosted.org/packages/.../requests-2.31.0-py3-none-any.whl
+  name: requests
+  version: 2.31.0
+  requires_python: '>=3.7'

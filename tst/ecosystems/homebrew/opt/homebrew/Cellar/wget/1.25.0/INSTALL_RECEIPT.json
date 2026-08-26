@@ -1,0 +1,40 @@
+{
+  "homebrew_version": "4.4.15",
+  "used_options": [],
+  "unused_options": [],
+  "built_as_bottle": true,
+  "poured_from_bottle": true,
+  "loaded_from_api": true,
+  "installed_as_dependency": false,
+  "installed_on_request": true,
+  "changed_files": [],
+  "time": 1736900000,
+  "source_modified_time": 1730000000,
+  "stdlib": null,
+  "compiler": "clang",
+  "aliases": [],
+  "runtime_dependencies": [
+    { "full_name": "openssl@3", "version": "3.4.1", "revision": 0, "pkg_version": "3.4.1", "declared_directly": true },
+    { "full_name": "libidn2", "version": "2.3.7", "revision": 0, "pkg_version": "2.3.7", "declared_directly": true }
+  ],
+  "source": {
+    "spec": "stable",
+    "path": "/opt/homebrew/Library/Taps/homebrew/homebrew-core/Formula/w/wget.rb",
+    "tap": "homebrew/core",
+    "tap_git_head": "a1b2c3d4e5f60718293a4b5c6d7e8f9001122334",
+    "versions": {
+      "stable": "1.25.0",
+      "head": null,
+      "version_scheme": 0
+    }
+  },
+  "arch": "arm64",
+  "built_on": {
+    "os": "Macintosh",
+    "os_version": "macOS 14.6",
+    "cpu_family": "arm_firestorm_icestorm",
+    "xcode": "15.4",
+    "clt": "15.4.0.0.1.1718377789",
+    "preferred_perl": "5.34"
+  }
+}

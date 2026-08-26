@@ -1,0 +1,157 @@
+{
+  "affected": [
+    {
+      "database_specific": {
+        "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2022/06/GHSA-5crp-9r3c-p9vr/GHSA-5crp-9r3c-p9vr.json"
+      },
+      "package": {
+        "ecosystem": "NuGet",
+        "name": "Newtonsoft.Json",
+        "purl": "pkg:nuget/Newtonsoft.Json"
+      },
+      "ranges": [
+        {
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "13.0.1"
+            }
+          ],
+          "type": "ECOSYSTEM"
+        }
+      ],
+      "versions": [
+        "10.0.1",
+        "10.0.1-beta1",
+        "10.0.2",
+        "10.0.3",
+        "11.0.1",
+        "11.0.1-beta1",
+        "11.0.1-beta2",
+        "11.0.1-beta3",
+        "11.0.2",
+        "12.0.1",
+        "12.0.1-beta1",
+        "12.0.1-beta2",
+        "12.0.2",
+        "12.0.2-beta1",
+        "12.0.2-beta2",
+        "12.0.2-beta3",
+        "12.0.3",
+        "12.0.3-beta1",
+        "12.0.3-beta2",
+        "13.0.1-beta1",
+        "13.0.1-beta2",
+        "3.5.8",
+        "4.0.1",
+        "4.0.2",
+        "4.0.3",
+        "4.0.4",
+        "4.0.5",
+        "4.0.6",
+        "4.0.7",
+        "4.0.8",
+        "4.5.1",
+        "4.5.10",
+        "4.5.11",
+        "4.5.2",
+        "4.5.3",
+        "4.5.4",
+        "4.5.5",
+        "4.5.6",
+        "4.5.7",
+        "4.5.8",
+        "4.5.9",
+        "5.0.1",
+        "5.0.2",
+        "5.0.3",
+        "5.0.4",
+        "5.0.5",
+        "5.0.6",
+        "5.0.7",
+        "5.0.8",
+        "6.0.1",
+        "6.0.1-beta1",
+        "6.0.2",
+        "6.0.3",
+        "6.0.4",
+        "6.0.5",
+        "6.0.6",
+        "6.0.7",
+        "6.0.8",
+        "7.0.1",
+        "7.0.1-beta1",
+        "7.0.1-beta2",
+        "7.0.1-beta3",
+        "8.0.1",
+        "8.0.1-beta1",
+        "8.0.1-beta2",
+        "8.0.1-beta3",
+        "8.0.1-beta4",
+        "8.0.2",
+        "8.0.3",
+        "8.0.4-beta1",
+        "9.0.1",
+        "9.0.1-beta1",
+        "9.0.2-beta1",
+        "9.0.2-beta2"
+      ]
+    }
+  ],
+  "aliases": [
+    "CVE-2024-21907"
+  ],
+  "database_specific": {
+    "cwe_ids": [
+      "CWE-755"
+    ],
+    "github_reviewed": true,
+    "github_reviewed_at": "2022-06-22T15:08:47Z",
+    "nvd_published_at": null,
+    "severity": "HIGH"
+  },
+  "details": "Newtonsoft.Json prior to version 13.0.1 is vulnerable to Insecure Defaults due to improper handling of expressions with high nesting level that lead to StackOverFlow exception or high CPU and RAM usage. Exploiting this vulnerability results in Denial Of Service (DoS). \n\nThe serialization and deserialization path have different properties regarding the issue.\n\nDeserializing methods (like `JsonConvert.DeserializeObject`) will process the input that results in burning the CPU, allocating memory, and consuming a thread of execution. Quite high nesting level (>10kk, or 9.5MB of `{a:{a:{...` input) is needed to achieve the latency over 10 seconds, depending on the hardware.\n\nSerializing methods (like `JsonConvert.Serialize` or `JObject.ToString`) will throw StackOverFlow exception with the nesting level of around 20k.\n\nTo mitigate the issue one either need to update Newtonsoft.Json to 13.0.1 or set `MaxDepth` parameter in the `JsonSerializerSettings`. This can be done globally with the following statement. After that the parsing of the nested input will fail fast with `Newtonsoft.Json.JsonReaderException`:\n\n``` \nJsonConvert.DefaultSettings = () => new JsonSerializerSettings { MaxDepth = 128 };\n```\n\nRepro code:\n```\n//Create a string representation of an highly nested object (JSON serialized)\nint nRep = 25000;\nstring json = string.Concat(Enumerable.Repeat(\"{a:\", nRep)) + \"1\" +\n string.Concat(Enumerable.Repeat(\"}\", nRep));\n\n//Parse this object (leads to high CPU/RAM consumption)\nvar parsedJson = JsonConvert.DeserializeObject(json);\n\n// Methods below all throw stack overflow with nRep around 20k and higher\n// string a = parsedJson.ToString();\n// string b = JsonConvert.SerializeObject(parsedJson);\n```\n\n### Additional affected product and version information\n**The original statement about the problem only affecting IIS applications is misleading.** Any application is affected, however the IIS has a behavior that stops restarting the instance after some time resulting in a harder-to-fix DoS.**",
+  "id": "GHSA-5crp-9r3c-p9vr",
+  "modified": "2026-07-08T06:53:11.583483075Z",
+  "published": "2022-06-22T15:08:47Z",
+  "references": [
+    {
+      "type": "WEB",
+      "url": "https://github.com/JamesNK/Newtonsoft.Json/issues/2457"
+    },
+    {
+      "type": "WEB",
+      "url": "https://github.com/JamesNK/Newtonsoft.Json/pull/2462"
+    },
+    {
+      "type": "WEB",
+      "url": "https://github.com/JamesNK/Newtonsoft.Json/commit/7e77bbe1beccceac4fc7b174b53abfefac278b66"
+    },
+    {
+      "type": "WEB",
+      "url": "https://alephsecurity.com/2018/10/22/StackOverflowException"
+    },
+    {
+      "type": "WEB",
+      "url": "https://alephsecurity.com/vulns/aleph-2018004"
+    },
+    {
+      "type": "PACKAGE",
+      "url": "https://github.com/JamesNK/Newtonsoft.Json"
+    },
+    {
+      "type": "WEB",
+      "url": "https://security.snyk.io/vuln/SNYK-DOTNET-NEWTONSOFTJSON-2774678"
+    }
+  ],
+  "schema_version": "1.7.3",
+  "severity": [
+    {
+      "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      "type": "CVSS_V3"
+    }
+  ],
+  "summary": "Improper Handling of Exceptional Conditions in Newtonsoft.Json"
+}

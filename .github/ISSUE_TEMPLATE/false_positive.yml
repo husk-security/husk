@@ -1,0 +1,38 @@
+name: False positive or false negative
+description: husk flagged something safe, or missed something dangerous.
+labels: ["detection"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The false-positive/false-negative balance matters more to husk than
+        feature count, so these reports are the most useful kind. Findings
+        against the `tst/` fixture corpus are deliberate.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Which way
+      options: [False positive (flagged something safe), False negative (missed something dangerous)]
+    validations:
+      required: true
+  - type: input
+    id: rule
+    attributes:
+      label: Finding id or rule
+      description: The `id` field from `husk scan --json`, if you have one.
+  - type: textarea
+    id: input
+    attributes:
+      label: Smallest input that reproduces it
+      description: |
+        The manifest, config, or file content husk read. Redact real secrets;
+        a placeholder that keeps the same shape is what we need.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why the verdict is wrong
+    validations:
+      required: true

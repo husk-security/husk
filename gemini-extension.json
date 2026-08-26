@@ -1,0 +1,12 @@
+{
+  "name": "husk",
+  "version": "0.1.0",
+  "description": "Connect Gemini CLI to the husk security scanner: registers the husk MCP server and loads the shared husk agent guide as context.",
+  "contextFileName": "integrations/husk-agent-guide.md",
+  "mcpServers": {
+    "husk": {
+      "command": "npx",
+      "args": ["-y", "husk-sec", "mcp"]
+    }
+  }
+}

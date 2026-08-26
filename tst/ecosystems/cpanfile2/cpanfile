@@ -1,0 +1,34 @@
+###############################################
+# cpanfile - declared CPAN dependencies (fixture)
+# Only the exact pins below should yield coordinates.
+###############################################
+
+requires 'perl', '5.010';                # interpreter version -> skip
+
+# exact / bare-version pins -> coordinates
+requires 'Plack', '1.0';                 # cpan/Plack@1.0
+requires 'JSON::XS', '== 4.03';          # cpan/JSON::XS@4.03
+
+# range / inequality -> NOT pinned, skip
+requires 'Moose', '>= 2.2000, < 3.0';
+requires 'DBI', '>= 1.643';
+
+# no version -> skip
+requires 'strict';
+requires 'warnings';
+
+recommends 'JSON::XS', '2.0';            # recommends, not requires -> skip
+conflicts 'JSON', '< 2.0';               # anti-dependency -> skip
+
+on 'test' => sub {
+    requires 'Test::More', '0.96';       # cpan/Test::More@0.96
+    requires 'Test::Deep', '>= 1.130';   # range -> skip
+};
+
+on 'develop' => sub {
+    recommends 'Devel::NYTProf';
+};
+
+feature 'sqlite', 'SQLite support' => sub {
+    recommends 'DBD::SQLite', '1.50';
+};

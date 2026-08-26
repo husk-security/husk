@@ -1,0 +1,30 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: memcached-operator.v0.10.0
+  namespace: placeholder
+  annotations:
+    capabilities: "Basic Install"
+    containerImage: quay.io/example/memcached-operator:v0.10.0
+    createdAt: "2024-09-01T00:00:00Z"
+spec:
+  displayName: Memcached Operator
+  version: 0.10.0
+  maturity: stable
+  relatedImages:
+    - name: manager
+      image: quay.io/example/memcached-operator@sha256:7f3c9b2a4e5d6f7081920aabbccddeeff00112233445566778899aabbccddeeff
+    - name: memcached
+      image: docker.io/library/memcached@sha256:00112233445566778899aabbccddeeff7f3c9b2a4e5d6f7081920aabbccddeeff
+  install:
+    strategy: deployment
+    spec:
+      deployments:
+        - name: memcached-operator
+          spec:
+            replicas: 1
+            template:
+              spec:
+                containers:
+                  - name: manager
+                    image: quay.io/example/memcached-operator:v0.10.0

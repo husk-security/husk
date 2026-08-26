@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 35,
+  "addons": [
+    {
+      "id": "uBlock0@raymondhill.net",
+      "syncGUID": "abc123",
+      "version": "1.57.2",
+      "type": "extension",
+      "location": "app-profile",
+      "descriptor": "/home/dev/.mozilla/firefox/qa1b2c3d.default-release/extensions/uBlock0@raymondhill.net.xpi",
+      "active": true,
+      "userDisabled": false,
+      "signedState": 2,
+      "installDate": 1716240000000,
+      "updateDate": 1748900000000,
+      "sourceURI": "https://addons.mozilla.org/firefox/downloads/file/4300000/ublock_origin-1.57.2.xpi",
+      "defaultLocale": { "name": "uBlock Origin", "description": "Finally, an efficient blocker.", "creator": "Raymond Hill" }
+    },
+    {
+      "id": "{d10d0bf8-f5b5-c8b4-a8b2-2b9879e08c5d}",
+      "version": "2.0.3",
+      "type": "extension",
+      "location": "app-profile",
+      "descriptor": "/home/dev/.mozilla/firefox/qa1b2c3d.default-release/extensions/{d10d0bf8-f5b5-c8b4-a8b2-2b9879e08c5d}",
+      "active": true,
+      "userDisabled": false,
+      "signedState": 0,
+      "sourceURI": null,
+      "defaultLocale": { "name": "Sideloaded Helper", "creator": "unknown" }
+    },
+    {
+      "id": "default-theme@mozilla.org",
+      "version": "1.3",
+      "type": "theme",
+      "location": "app-builtin",
+      "active": true,
+      "userDisabled": false,
+      "signedState": 2,
+      "defaultLocale": { "name": "System theme — auto" }
+    }
+  ]
+}

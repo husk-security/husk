@@ -1,0 +1,30 @@
+{
+  "homebrew_version": "4.4.15",
+  "used_options": [],
+  "unused_options": [],
+  "built_as_bottle": true,
+  "poured_from_bottle": true,
+  "loaded_from_api": true,
+  "installed_as_dependency": true,
+  "installed_on_request": false,
+  "changed_files": [],
+  "time": 1736800000,
+  "source_modified_time": 1729000000,
+  "compiler": "clang",
+  "aliases": [],
+  "runtime_dependencies": [
+    { "full_name": "ca-certificates", "version": "2025-02-25", "revision": 0, "pkg_version": "2025-02-25", "declared_directly": true }
+  ],
+  "source": {
+    "spec": "stable",
+    "path": "/opt/homebrew/Library/Taps/homebrew/homebrew-core/Formula/o/openssl@3.rb",
+    "tap": "homebrew/core",
+    "tap_git_head": "0011223344556677889900aabbccddeeff001122",
+    "versions": {
+      "stable": "3.4.1",
+      "head": null,
+      "version_scheme": 0
+    }
+  },
+  "arch": "arm64"
+}

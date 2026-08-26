@@ -1,0 +1,51 @@
+[
+  {
+    "identifier": { "id": "ms-python.python", "uuid": "f1f59ae4-9318-4f3c-a9b5-81b2eaa5f8a5" },
+    "version": "2024.4.1",
+    "location": { "$mid": 1, "path": "/home/dev/.vscode/extensions/ms-python.python-2024.4.1", "scheme": "file" },
+    "relativeLocation": "ms-python.python-2024.4.1",
+    "metadata": {
+      "id": "f1f59ae4-9318-4f3c-a9b5-81b2eaa5f8a5",
+      "publisherDisplayName": "Microsoft",
+      "targetPlatform": "linux-x64",
+      "isPreReleaseVersion": false,
+      "installedTimestamp": 1713161142173,
+      "pinned": false,
+      "source": "gallery"
+    }
+  },
+  {
+    "identifier": { "id": "esbenp.prettier-vscode", "uuid": "96fa4707-6983-4489-b7c5-d5ffdfdcb348" },
+    "version": "10.4.0",
+    "location": { "$mid": 1, "path": "/home/dev/.vscode/extensions/esbenp.prettier-vscode-10.4.0", "scheme": "file" },
+    "relativeLocation": "esbenp.prettier-vscode-10.4.0",
+    "metadata": {
+      "publisherDisplayName": "Prettier",
+      "targetPlatform": "undefined",
+      "isPreReleaseVersion": false,
+      "installedTimestamp": 1713170000000,
+      "pinned": true,
+      "source": "gallery"
+    }
+  },
+  {
+    "identifier": { "id": "rust-lang.rust-analyzer" },
+    "version": "0.3.2000",
+    "relativeLocation": "rust-lang.rust-analyzer-0.3.2000-linux-x64",
+    "metadata": {
+      "publisherDisplayName": "The Rust Programming Language",
+      "targetPlatform": "linux-x64",
+      "source": "gallery"
+    }
+  },
+  {
+    "identifier": { "id": "GitHub.vscode-pull-request-github", "uuid": "69ff65b0-b78c-4e5f-b3ca-3b8b48b21f0b" },
+    "version": "0.92.0",
+    "relativeLocation": "github.vscode-pull-request-github-0.92.0",
+    "metadata": {
+      "publisherDisplayName": "GitHub",
+      "targetPlatform": "undefined",
+      "source": "gallery"
+    }
+  }
+]

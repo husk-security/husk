@@ -1,0 +1,16 @@
+.direnv
+/target
+/result*
+
+# Local scratch worktrees and checkouts at the repo root.
+/.claude/worktrees/
+
+# Built Vite front-end embedded by the `web` feature; CI and the release
+# workflow rebuild it from web/src before compiling.
+/web/dist
+/web/node_modules
+
+# An intentionally-risky agent config the scanner must flag. A global gitignore
+# of **/.claude/settings.local.json would otherwise exclude this fixture, so
+# force-keep it.
+!tst/.claude/settings.local.json

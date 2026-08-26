@@ -1,0 +1,9 @@
+# Swift dev tools for this project (managed by Mint)
+yonaskolb/XcodeGen@2.18.0
+realm/SwiftLint@0.46.1          # pin: matches CI linter version
+nicklockwood/SwiftFormat@0.49.1
+apple/swift-format@508.0.0
+
+# unpinned tools (latest tag / branch) are recorded but not pinned coordinates
+SwiftGen/SwiftGen
+Quick/Nimble@main

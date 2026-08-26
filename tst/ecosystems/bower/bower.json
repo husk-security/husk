@@ -1,0 +1,15 @@
+{
+  "name": "my-legacy-app",
+  "description": "Legacy front-end app (range-only manifest; pins live in bower_components/*/.bower.json)",
+  "private": true,
+  "dependencies": {
+    "jquery": "^3.4.0",
+    "bootstrap": "~3.3.7"
+  },
+  "devDependencies": {
+    "qunit": "^2.9.0"
+  },
+  "resolutions": {
+    "jquery": "3.4.1"
+  }
+}

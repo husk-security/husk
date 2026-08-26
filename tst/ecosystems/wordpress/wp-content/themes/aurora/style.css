@@ -1,0 +1,15 @@
+/*
+Theme Name: Aurora
+Theme URI: https://example.com/aurora
+Author: Acme
+Description: A clean blog theme for the Acme demo site.
+Version: 1.4.0
+Requires PHP: 7.4
+Template:
+Text Domain: aurora
+*/
+
+/* Inert fixture stylesheet. coordinate => wordpress / aurora / 1.4.0 */
+body {
+	margin: 0;
+}

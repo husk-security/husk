@@ -1,0 +1,29 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem@2024.11.5", "/home/user/projects"]
+    },
+    "sqlite": {
+      "command": "uvx",
+      "args": ["mcp-server-sqlite==0.6.2", "--db-path", "./app.db"]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "-p", "@modelcontextprotocol/server-github@1.0.4", "mcp-server-github"],
+      "env": { "GITHUB_TOKEN": "${env:GITHUB_TOKEN}" }
+    },
+    "everything": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-everything@latest"]
+    },
+    "remote-only": {
+      "type": "http",
+      "url": "https://api.example.com/mcp"
+    },
+    "local-source": {
+      "command": "node",
+      "args": ["/home/user/dev/my-server/dist/index.js"]
+    }
+  }
+}

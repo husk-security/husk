@@ -1,0 +1,43 @@
+{
+  "lockVersion": 1,
+  "timestamp": "2026-06-19T10:15:00.000Z",
+  "configurations": ["compile", "provided", "runtime", "test"],
+  "dependencies": [
+    {
+      "org": "org.apache.commons",
+      "name": "commons-lang3",
+      "version": "3.14.0",
+      "artifacts": [
+        { "name": "commons-lang3.jar", "hash": "sha1:0122c7cee69b53ed4a7681c03d4ee4c0e2765da5" }
+      ],
+      "configurations": ["compile", "runtime", "test"]
+    },
+    {
+      "org": "com.typesafe.akka",
+      "name": "akka-actor_2.13",
+      "version": "2.6.21",
+      "artifacts": [
+        { "name": "akka-actor_2.13.jar", "hash": "sha1:7f1b2c3d4e5f60718293a4b5c6d7e8f901234567" }
+      ],
+      "configurations": ["compile", "runtime"]
+    },
+    {
+      "org": "org.scala-lang",
+      "name": "scala-library",
+      "version": "2.13.12",
+      "artifacts": [
+        { "name": "scala-library.jar", "hash": "sha1:aabbccddeeff00112233445566778899aabbccdd" }
+      ],
+      "configurations": ["compile", "runtime", "test"]
+    },
+    {
+      "org": "org.apache.logging.log4j",
+      "name": "log4j-core",
+      "version": "2.14.1",
+      "artifacts": [
+        { "name": "log4j-core.jar", "hash": "sha1:cd8858fbbde69f46bce8db1152c18a43328aae78" }
+      ],
+      "configurations": ["compile", "runtime"]
+    }
+  ]
+}

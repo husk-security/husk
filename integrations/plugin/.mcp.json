@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "husk": {
+      "command": "npx",
+      "args": ["-y", "husk-sec", "mcp"]
+    }
+  }
+}

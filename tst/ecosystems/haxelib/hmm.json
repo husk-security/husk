@@ -1,0 +1,7 @@
+{
+  "dependencies": [
+    { "name": "tink_macro", "type": "haxelib", "version": "0.10.4" },
+    { "name": "hxnodejs", "type": "haxelib", "version": "12.1.0" },
+    { "name": "thx.promise", "type": "git", "url": "git@github.com:fponticelli/thx.promise", "ref": "ae94bdc", "dir": "src" }
+  ]
+}

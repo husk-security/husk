@@ -1,0 +1,16 @@
+[
+  {
+    "name": "theme_info",
+    "theme_name": "Dawn",
+    "theme_author": "Shopify",
+    "theme_version": "15.3.0",
+    "theme_documentation_url": "https://help.shopify.com/manual/online-store/themes/themes-by-shopify/dawn",
+    "theme_support_url": "https://support.shopify.com/"
+  },
+  {
+    "name": "Colors",
+    "settings": [
+      { "type": "color", "id": "colors_accent_1", "label": "Accent 1", "default": "#121212" }
+    ]
+  }
+]

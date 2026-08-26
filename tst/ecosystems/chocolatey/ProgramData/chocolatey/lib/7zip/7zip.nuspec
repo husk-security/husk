@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>7zip</id>
+    <version>23.1.0</version>
+    <title>7-Zip</title>
+    <authors>Igor Pavlov</authors>
+    <description>7-Zip is a file archiver.</description>
+  </metadata>
+</package>

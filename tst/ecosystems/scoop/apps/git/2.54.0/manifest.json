@@ -1,0 +1,13 @@
+{
+  "version": "2.54.0",
+  "homepage": "https://gitforwindows.org/",
+  "license": "GPL-2.0-only",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/git-for-windows/git/releases/download/v2.54.0.windows.1/PortableGit-2.54.0-64-bit.7z.exe#/dl.7z",
+      "hash": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2"
+    }
+  },
+  "bin": "cmd\\git.exe",
+  "checkver": "github"
+}

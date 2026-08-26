@@ -1,0 +1,36 @@
+# carton snapshot format: version 1.0
+DISTRIBUTIONS
+  Algorithm-Diff-1.1903
+    pathname: T/TY/TYEMQ/Algorithm-Diff-1.1903.tar.gz
+    provides:
+      Algorithm::Diff 1.1903
+      Algorithm::Diff::_impl 1.1903
+    requirements:
+      ExtUtils::MakeMaker 0
+  Mojolicious-9.22
+    pathname: S/SR/SRI/Mojolicious-9.22.tar.gz
+    provides:
+      Mojo 9.22
+      Mojo::UserAgent 9.22
+      Mojolicious 9.22
+      Mojolicious::Lite 9.22
+    requirements:
+      perl 5.016
+  libwww-perl-6.67
+    pathname: O/OA/OALDERS/libwww-perl-6.67.tar.gz
+    provides:
+      LWP 6.67
+      LWP::UserAgent 6.67
+    requirements:
+      Encode::Locale 0
+      File::Listing 6
+      HTTP::Cookies 6
+      HTTP::Message 6.18
+      perl 5.008008
+  HTTP-Message-6.44
+    pathname: O/OA/OALDERS/HTTP-Message-6.44.tar.gz
+    provides:
+      HTTP::Request 6.44
+      HTTP::Response 6.44
+    requirements:
+      perl 5.008001

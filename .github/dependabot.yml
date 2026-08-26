@@ -1,0 +1,54 @@
+# Dependabot must never propose changes under tst/. Those manifests are
+# intentionally vulnerable scan fixtures: the pinned old versions are the
+# inputs the detection tests assert against, so "fixing" one breaks the
+# fixture it exists to be. Every entry below therefore carries
+# `exclude-paths: tst/**` in addition to being scoped to a real directory.
+#
+# This covers version updates only. Dependabot *security* updates are a
+# separate repository setting that scans the dependency graph directly and
+# ignores this file, so it can still open a fixture bump; close those.
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: "/"
+    exclude-paths:
+      - "tst/**"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    groups:
+      # Routine patch and minor bumps arrive as one pull request; majors stay
+      # individual so each gets scrutiny.
+      cargo-minor:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: npm
+    directory: "/web"
+    exclude-paths:
+      - "tst/**"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    groups:
+      npm-minor:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    exclude-paths:
+      - "tst/**"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions-all:
+        patterns: ["*"]

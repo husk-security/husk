@@ -1,0 +1,12 @@
+{
+  "version": "24.09",
+  "homepage": "https://7-zip.org/",
+  "license": "LGPL-2.1-only",
+  "architecture": {
+    "64bit": {
+      "url": "https://7-zip.org/a/7z2409-x64.msi",
+      "hash": "f0e1d2c3b4a5968778695a4b3c2d1e0f1a2b3c4d5e6f70819a2b3c4d5e6f7081"
+    }
+  },
+  "bin": ["7z.exe", "7zG.exe"]
+}

@@ -1,0 +1,7 @@
+name: Greet
+description: Composite action fixture with template injection in a run step
+runs:
+  using: composite
+  steps:
+    - run: echo "${{ github.event.discussion.body }}"
+      shell: bash

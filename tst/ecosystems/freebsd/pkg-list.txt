@@ -1,0 +1,6 @@
+# Exported FreeBSD pkg inventory: `pkg query '%n %v'`
+nginx 1.24.0_1
+openssl 3.0.16,1
+p5-IO-Socket-SSL 2.085
+python311 3.11.9
+ffmpeg 6.1.2_14,1

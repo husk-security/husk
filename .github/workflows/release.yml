@@ -1,0 +1,661 @@
+# Signed, provenance-bearing release builds for the husk binary.
+#
+# Each release carries, per target: a `.tar.gz` of the `husk` binary, a
+# per-archive SHA-256 file, a cosign signature (`.sig`) and certificate
+# (`.pem`), and a SLSA build-provenance bundle (`.intoto.jsonl`).
+#
+# Trust model: cosign signs keyless through Sigstore (Fulcio + Rekor), so there
+# is no long-lived private key to leak. The signing identity is this workflow's
+# GitHub Actions OIDC token, recorded in Rekor. SLSA provenance comes from
+# GitHub's attestation action, which signs the same way and records source,
+# commit, and workflow in an in-toto statement. The README's "Verifying a
+# release" section documents how a downloader checks both.
+#
+# Cutting a release:
+#   1. Land everything on `main`. Bump `version` in Cargo.toml, flake.nix, and
+#      server.json (both `version` and `packages[].version`) in lockstep with
+#      the tag, and keep Cargo.lock current; the build uses `--locked`.
+#   2. `git tag vX.Y.Z && git push origin vX.Y.Z`. The tag must resolve to a
+#      commit reachable from `origin/main`. The matrix builds every target, then
+#      the publish job signs each archive and SHA256SUMS, generates provenance,
+#      and creates the GitHub Release.
+#   3. To build without releasing, trigger `workflow_dispatch` on a branch. The
+#      publish job is skipped.
+#
+# The allowed-actor checks on every publishing job, together with the fresh
+# remote-ref validation in "Validate release ref", are the publication boundary.
+# A dispatch runs branch code on the self-hosted pool and the tag jobs hold
+# write, attestation, and OIDC permissions, so both the original event and any
+# re-run must be initiated by an allowed maintainer.
+#
+# Downstream, once the GitHub Release exists: `npm-package` and `npm-publish`
+# turn the same signed binaries into six npm packages (one per platform plus the
+# `husk-sec` launcher), `cargo-publish` publishes the `husk-sec` crate to
+# crates.io, and `mcp-registry` lists `server.json` in the MCP Registry after
+# confirming both upstream packages are live. All three authenticate through
+# OIDC trusted publishing, so there is no NPM_TOKEN and no CARGO_REGISTRY_TOKEN,
+# which is why they need GitHub-hosted runners. Neither registry can bind a
+# trusted publisher to a name that does not exist yet (for crates.io that is
+# RFC 3691), so the first publish of each npm package name and of the crate is a
+# manual maintainer step; every release after it is automatic. After the first
+# release, copy the cosign identity that `cosign verify-blob` emits into the
+# README verification snippet and into install.sh.
+#
+# Every third-party action is pinned to a full commit SHA, with the tag in a
+# trailing comment, because husk itself flags actions that are not SHA-pinned.
+# When bumping an action, update the SHA and the comment together.
+
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  # Builds the matrix from the Actions tab without cutting a release. The
+  # signing and publish jobs are gated on a tag push.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  build:
+    name: build (${{ matrix.target }})
+    # A manual run executes selected branch code on the self-hosted pool, so
+    # both the original event and any re-run require an allowed human.
+    if: >-
+      (github.actor == 'ErikFrankling' || github.actor == 'PatrikTang') &&
+      (github.triggering_actor == 'ErikFrankling' || github.triggering_actor == 'PatrikTang')
+    # The self-hosted pool is Linux-only, so a manual run covers the two Linux
+    # targets; the macOS legs build only on a tag push, which runs
+    # GitHub-hosted.
+    runs-on: ${{ github.event_name == 'workflow_dispatch' && 'husk-ci' || matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # The legs live in JSON because a job-level `if` cannot see the matrix
+        # context and `exclude` cannot filter an include-only matrix. The
+        # aarch64 leg cross-compiles on x86 and needs the cross linker from apt;
+        # the manual legs also install build-essential, because the self-hosted
+        # image has no C toolchain.
+        include: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '[{"target":"x86_64-unknown-linux-gnu","os":"ubuntu-latest","apt":"build-essential"},{"target":"aarch64-unknown-linux-gnu","os":"ubuntu-latest","linker":"aarch64-linux-gnu-gcc","apt":"build-essential gcc-aarch64-linux-gnu"}]' || '[{"target":"x86_64-unknown-linux-gnu","os":"ubuntu-latest"},{"target":"aarch64-unknown-linux-gnu","os":"ubuntu-latest","linker":"aarch64-linux-gnu-gcc","apt":"gcc-aarch64-linux-gnu"},{"target":"x86_64-apple-darwin","os":"macos-15-intel"},{"target":"aarch64-apple-darwin","os":"macos-15"}]') }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo build
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install apt toolchain packages (Linux)
+        if: matrix.apt != ''
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.apt }}
+
+      # The default `web` feature embeds web/dist, which is gitignored, so the
+      # front-end has to be built before the release binary compiles.
+      - name: Build web UI
+        uses: ./.github/actions/build-web
+
+      - name: Build release binary
+        shell: bash
+        env:
+          # Tell cargo which linker to use for the cross target. The variable
+          # name is derived from the target triple, uppercased with dashes as
+          # underscores: CARGO_TARGET_<TRIPLE>_LINKER.
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: ${{ matrix.linker }}
+          # Pinned empty so a runner-injected RUSTFLAGS cannot change how the
+          # release binary links.
+          RUSTFLAGS: ""
+        run: |
+          cargo build --release --locked --target "${{ matrix.target }}"
+
+      - name: Stage archive
+        id: stage
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME}"
+          target="${{ matrix.target }}"
+          stem="husk-${version}-${target}"
+          outdir="dist"
+          mkdir -p "${outdir}"
+
+          archive="${outdir}/${stem}.tar.gz"
+          # Stage into a temp dir so the archive has a flat layout.
+          stagedir="$(mktemp -d)"
+          cp "target/${target}/release/husk" "${stagedir}/husk"
+          cp README.md LICENSE web/GEIST-OFL.txt "${stagedir}/"
+          tar -czf "${archive}" -C "${stagedir}" .
+
+          # Per-archive SHA-256 (portable across Linux and macOS).
+          if command -v sha256sum >/dev/null 2>&1; then
+            (cd "${outdir}" && sha256sum "$(basename "${archive}")" > "$(basename "${archive}").sha256")
+          else
+            (cd "${outdir}" && shasum -a 256 "$(basename "${archive}")" > "$(basename "${archive}").sha256")
+          fi
+
+          echo "archive=${archive}" >> "${GITHUB_OUTPUT}"
+          echo "stem=${stem}" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.stage.outputs.stem }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: sign and publish
+    needs: [build]
+    # A contents-writing app can create tags and can re-run Actions jobs. Require
+    # an allowed human for both the original event and any re-run before this job
+    # receives write, attestation, or OIDC permissions.
+    if: >-
+      startsWith(github.ref, 'refs/tags/v') &&
+      (github.actor == 'ErikFrankling' || github.actor == 'PatrikTang') &&
+      (github.triggering_actor == 'ErikFrankling' || github.triggering_actor == 'PatrikTang')
+    runs-on: ubuntu-latest
+    permissions:
+      # Create/attach to the GitHub Release.
+      contents: write
+      # Mint the OIDC token cosign + attestation use for keyless signing.
+      id-token: write
+      # Write the provenance attestation to the repo's attestation store.
+      attestations: write
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate release ref
+        shell: bash
+        env:
+          REPOSITORY_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          tag="${GITHUB_REF_NAME}"
+          if [[ ! "${tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::release tags must have the exact stable SemVer form vX.Y.Z"
+            exit 1
+          fi
+
+          cargo_version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"
+          flake_version="$(sed -n 's/^[[:space:]]*version = "\(.*\)";/\1/p' flake.nix | head -n 1)"
+          expected="${tag#v}"
+          if [[ "${cargo_version}" != "${expected}" || "${flake_version}" != "${expected}" ]]; then
+            echo "::error::${tag} does not match Cargo.toml (${cargo_version}) and flake.nix (${flake_version})"
+            exit 1
+          fi
+
+          # The MCP Registry rejects a duplicate version and cannot amend a
+          # published one, so every version in server.json must be right before
+          # the tag reaches the publish job.
+          if ! jq -e --arg v "${expected}" \
+            '.version == $v and all(.packages[]; .version == $v)' server.json >/dev/null; then
+            echo "::error::${tag} does not match every version in server.json"
+            jq '{version, packages: [.packages[] | {registryType, version}]}' server.json
+            exit 1
+          fi
+
+          git_auth="$(
+            printf 'x-access-token:%s' "${REPOSITORY_TOKEN}" |
+              base64 |
+              tr -d '\n'
+          )"
+          git -c "http.extraHeader=AUTHORIZATION: basic ${git_auth}" \
+            fetch --no-tags origin "+refs/heads/main:refs/remotes/origin/main"
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" refs/remotes/origin/main; then
+            echo "::error::${tag} must resolve to a commit reachable from origin/main"
+            exit 1
+          fi
+
+          remote_target="$(
+            git -c "http.extraHeader=AUTHORIZATION: basic ${git_auth}" \
+              ls-remote origin "refs/tags/${tag}" "refs/tags/${tag}^{}" |
+              awk '/\^\{\}$/ { peeled=$1 } !/\^\{\}$/ { direct=$1 } END { print peeled ? peeled : direct }'
+          )"
+          if [[ "${remote_target}" != "${GITHUB_SHA}" ]]; then
+            echo "::error::remote ${tag} moved or no longer resolves to the workflow commit"
+            exit 1
+          fi
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: staging
+
+      - name: Flatten artifacts into one directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          # upload-artifact nests each upload under its own directory.
+          find staging -type f -exec cp {} dist/ \;
+          cp install.sh dist/install.sh
+          echo "Release artifacts:"
+          ls -la dist
+
+      - name: Verify checksums match archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          for sum in *.sha256; do
+            echo "Checking ${sum}"
+            sha256sum -c "${sum}"
+          done
+
+      - name: Generate aggregate checksum file
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          : > SHA256SUMS
+          for f in *.tar.gz install.sh; do
+            [ -e "${f}" ] || continue
+            sha256sum "${f}" >> SHA256SUMS
+          done
+          echo "Combined checksums:"
+          cat SHA256SUMS
+
+      - name: Generate SLSA build provenance for archives
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            dist/*.tar.gz
+            dist/install.sh
+            dist/SHA256SUMS
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Sign archives and checksums with cosign (keyless)
+        shell: bash
+        env:
+          COSIGN_YES: "true"
+        run: |
+          set -euo pipefail
+          cd dist
+          for f in *.tar.gz install.sh SHA256SUMS; do
+            [ -e "${f}" ] || continue
+            echo "Signing ${f}"
+            cosign sign-blob \
+              --yes \
+              --output-signature "${f}.sig" \
+              --output-certificate "${f}.pem" \
+              "${f}"
+          done
+          echo "Signed artifact set:"
+          ls -la
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/install.sh
+            dist/*.sha256
+            dist/SHA256SUMS
+            dist/*.sig
+            dist/*.pem
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+
+  npm-package:
+    name: build npm packages
+    needs: [build, release]
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_id: ${{ steps.upload.outputs.artifact-id }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: staging
+
+      - name: Extract release binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          mkdir -p npm-bin
+
+          for target in \
+            x86_64-unknown-linux-gnu \
+            aarch64-unknown-linux-gnu \
+            x86_64-apple-darwin \
+            aarch64-apple-darwin
+          do
+            stem="husk-${tag}-${target}"
+            archive="staging/${stem}/${stem}.tar.gz"
+
+            # The archives are the exact bytes the GitHub Release serves, so
+            # re-checking their checksums here means the npm packages cannot
+            # carry a binary the release does not.
+            (cd "$(dirname "${archive}")" && sha256sum -c "$(basename "${archive}").sha256")
+
+            mkdir -p "npm-bin/${target}"
+            tar -xzf "${archive}" -C "npm-bin/${target}"
+          done
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Generate and pack npm packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p npm-release
+          node npm/build.mjs \
+            --version "${GITHUB_REF_NAME#v}" \
+            --binaries npm-bin \
+            --out npm-dist
+
+          # Platform packages first: the main package's optionalDependencies
+          # must be resolvable the moment it is published, and npm treats an
+          # unresolvable optional dependency as a silent skip rather than an
+          # error. The publish step consumes this order.
+          for dir in npm-dist/husk-sec-*/ npm-dist/husk-sec/; do
+            npm pack "${dir}" --pack-destination npm-release
+          done
+
+          (cd npm-release && sha256sum ./*.tgz > SHA256SUMS)
+          cat npm-release/SHA256SUMS
+
+      - name: Upload npm release inputs
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: npm-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: npm-release/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  npm-publish:
+    name: publish to npm
+    needs: [npm-package]
+    # Repeat the human gates on every job holding an external write capability,
+    # so a publish-only re-run cannot be requested by an app.
+    if: >-
+      (github.actor == 'ErikFrankling' || github.actor == 'PatrikTang') &&
+      (github.triggering_actor == 'ErikFrankling' || github.triggering_actor == 'PatrikTang')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Mints the npm trusted-publishing credential. There is no NPM_TOKEN.
+      id-token: write
+    steps:
+      - name: Download npm release inputs
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          artifact-ids: ${{ needs.npm-package.outputs.artifact_id }}
+          path: npm-release
+
+      - name: Verify artifact integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd npm-release
+          sha256sum --check SHA256SUMS
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install pinned npm
+        # Trusted publishing needs npm >=11.5.1; pin an exact version so the
+        # release toolchain does not drift with the Node image. Ignore install
+        # scripts so this bootstrap cannot execute package lifecycle hooks.
+        run: |
+          npm install --global --ignore-scripts npm@12.0.2
+          [[ "$(npm --version)" == "12.0.2" ]]
+
+      - name: Publish packages through npm trusted publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          read_field() {
+            tar -xOf "$1" package/package.json |
+              node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s)['$2']))"
+          }
+
+          publish() {
+            local tarball="$1"
+            local name version
+            name="$(read_field "${tarball}" name)"
+            version="$(read_field "${tarball}" version)"
+
+            if npm view "${name}@${version}" version >/dev/null 2>&1; then
+              echo "${name}@${version} is already published; nothing to do."
+              return
+            fi
+            # ./ prefix required: npm reads a bare `dir/file.tgz` argument as a
+            # git spec and tries to clone it.
+            npm publish "./${tarball}" --access public
+            echo "Published \`${name}@${version}\`." >> "${GITHUB_STEP_SUMMARY}"
+          }
+
+          # Platform packages before the main package, so its optional
+          # dependencies resolve for anyone installing in between. The platform
+          # glob is spelled out by platform because `husk-sec-*` also matches
+          # the main package's own `husk-sec-<version>.tgz`.
+          platform=(npm-release/husk-sec-{linux,darwin}-*.tgz)
+          [[ "${#platform[@]}" -eq 4 ]] || {
+            echo "::error::expected 4 platform tarballs; found ${#platform[@]}"
+            exit 1
+          }
+          for tarball in "${platform[@]}"; do
+            publish "${tarball}"
+          done
+
+          main=(npm-release/husk-sec-[0-9]*.tgz)
+          [[ "${#main[@]}" -eq 1 ]] || {
+            echo "::error::expected 1 main tarball; found ${#main[@]}"
+            exit 1
+          }
+          publish "${main[0]}"
+
+  cargo-publish:
+    name: publish to crates.io
+    needs: [release]
+    # Repeat the human gates on every job holding an external write capability,
+    # so a publish-only re-run cannot be requested by an app.
+    if: >-
+      (github.actor == 'ErikFrankling' || github.actor == 'PatrikTang') &&
+      (github.triggering_actor == 'ErikFrankling' || github.triggering_actor == 'PatrikTang')
+    runs-on: ubuntu-latest
+    # crates.io is reached only after the signed GitHub Release exists, so
+    # neither a registry outage nor the first release, where the crate cannot
+    # yet carry a trusted publisher, should turn a good release red. The job
+    # still reports its own failure, and `mcp-registry` independently refuses to
+    # list a version that is not on crates.io.
+    continue-on-error: true
+    permissions:
+      contents: read
+      # Mints the crates.io trusted-publishing credential. There is no
+      # CARGO_REGISTRY_TOKEN secret.
+      id-token: write
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check whether this version is already published
+        id: state
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          ua="husk-release (https://github.com/husk-security/husk)"
+
+          if curl -fsS -A "${ua}" \
+            "https://crates.io/api/v1/crates/husk-sec/${version}" >/dev/null; then
+            echo "husk-sec ${version} is already published; nothing to do."
+            echo "skip=1" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          # A Trusted Publisher Configuration attaches only to a crate that
+          # already exists (RFC 3691), so the first publish is done by hand.
+          if ! curl -fsS -A "${ua}" \
+            "https://crates.io/api/v1/crates/husk-sec" >/dev/null; then
+            echo "::error::the husk-sec crate does not exist on crates.io. Publish it once by hand, add a trusted publisher for this repository and release.yml, then re-run this job."
+            exit 1
+          fi
+          echo "skip=0" >> "${GITHUB_OUTPUT}"
+
+      - name: Install Rust toolchain
+        if: steps.state.outputs.skip == '0'
+        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: stable
+
+      # web/dist is gitignored but packaged, so without a fresh build cargo's
+      # verification build fails and the published crate carries no web assets.
+      - name: Build web UI
+        if: steps.state.outputs.skip == '0'
+        uses: ./.github/actions/build-web
+
+      - name: Authenticate with crates.io
+        id: auth
+        if: steps.state.outputs.skip == '0'
+        uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
+
+      - name: Publish the crate
+        if: steps.state.outputs.skip == '0'
+        shell: bash
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+          # cargo publish runs a verification build of the packaged crate; the
+          # workflow-level `-D warnings` would fail an otherwise good release on
+          # a warning, so pin it empty as the release builds do.
+          RUSTFLAGS: ""
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+
+          # web/dist is gitignored but packaged, and cargo treats a packaged file
+          # git does not track as a dirty working tree. The checkout is otherwise
+          # pristine, so web/dist is the only untracked content --allow-dirty
+          # covers.
+          if ! cargo publish --locked --allow-dirty; then
+            echo "::error::cargo publish failed for husk-sec ${version}. If the crate has no trusted publisher naming this repository and release.yml, add one and re-run this job."
+            exit 1
+          fi
+          echo "Published \`husk-sec@${version}\` to crates.io." >> "${GITHUB_STEP_SUMMARY}"
+
+  mcp-registry:
+    name: publish to the MCP Registry
+    needs: [npm-publish, cargo-publish]
+    # Repeated here because this job is expected to be re-run on its own, which
+    # would otherwise reach an OIDC-backed write without passing a human gate.
+    if: >-
+      (github.actor == 'ErikFrankling' || github.actor == 'PatrikTang') &&
+      (github.triggering_actor == 'ErikFrankling' || github.triggering_actor == 'PatrikTang')
+    runs-on: ubuntu-latest
+    # The registry is a listing, not a distribution channel: the release and the
+    # npm packages are already live here, and it rejects a re-publish of an
+    # existing version with a 400. Neither an outage, a re-run, nor a crate that
+    # is not published yet should turn a good release red. The job still reports
+    # its own failure, so re-run it alone once the missing piece is in place.
+    continue-on-error: true
+    permissions:
+      contents: read
+      # mcp-publisher exchanges this for a registry credential; no secret.
+      id-token: write
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install mcp-publisher
+        shell: bash
+        env:
+          MCP_PUBLISHER_VERSION: v1.8.0
+          MCP_PUBLISHER_SHA256: 1370446bbe74d562608e8005a6ccce02d146a661fbd78674e11cc70b9618d6cf
+        run: |
+          set -euo pipefail
+          url="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}/mcp-publisher_linux_amd64.tar.gz"
+          curl -fsSL "${url}" -o mcp-publisher.tar.gz
+          echo "${MCP_PUBLISHER_SHA256}  mcp-publisher.tar.gz" | sha256sum -c -
+          tar -xzf mcp-publisher.tar.gz mcp-publisher
+
+      - name: Check that every declared package is live
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          server_name="$(jq -r '.name' server.json)"
+
+          # The registry re-verifies ownership against each upstream registry
+          # and rejects the whole submission if any one of them is missing, so
+          # check them here where the failure is legible.
+
+          # npm metadata lags a publish by a few seconds.
+          npm_ok=""
+          for _ in $(seq 1 30); do
+            if curl -fsS "https://registry.npmjs.org/husk-sec/${version}" |
+              jq -e --arg n "${server_name}" '.mcpName == $n' >/dev/null; then
+              npm_ok=1
+              break
+            fi
+            sleep 10
+          done
+          if [ -z "${npm_ok}" ]; then
+            echo "::error::husk-sec@${version} is not on npm with mcpName ${server_name}"
+            exit 1
+          fi
+          echo "npm: husk-sec@${version} carries the expected mcpName."
+
+          # `cargo-publish` cannot fail the release, so reaching this point with
+          # the version missing means that job needs attention.
+          if ! curl -fsS -A "husk-release (https://github.com/husk-security/husk)" \
+            "https://crates.io/api/v1/crates/husk-sec/${version}" >/dev/null; then
+            echo "::error::husk-sec ${version} is not on crates.io; fix the cargo-publish job, then re-run this job"
+            exit 1
+          fi
+          echo "crates.io: husk-sec ${version} is published."
+
+      - name: Publish server.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
+          echo "Published \`io.github.husk-security/husk\` to the MCP Registry." >> "${GITHUB_STEP_SUMMARY}"

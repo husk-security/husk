@@ -1,0 +1,24 @@
+STORAGE: NONE
+CONTENT: NONE
+RESTRICTION: >= netstandard2.0
+NUGET
+  remote: https://api.nuget.org/v3/index.json
+    FSharp.Core (9.0.101)
+    Newtonsoft.Json (13.0.3) - restriction: >= netstandard2.0
+    Serilog (3.1.1)
+      System.Diagnostics.DiagnosticSource (>= 8.0)
+    Microsoft.CSharp (4.7) - redirects: force, restriction: >= net45
+
+GROUP Test
+NUGET
+  remote: https://api.nuget.org/v3/index.json
+    xunit (2.6.6)
+      xunit.assert (>= 2.6.6)
+      xunit.core (>= 2.6.6)
+    Moq (4.20.70)
+      Castle.Core (>= 5.1.1)
+
+GROUP Build
+GITHUB
+  remote: forki/FsUnit
+    FsUnit.fs (7623fc13439f0e60bd05c1ed3b5f6dcb937fe468)

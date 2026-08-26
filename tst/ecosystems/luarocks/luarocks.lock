@@ -1,0 +1,13 @@
+-- luarocks.lock  (fully PINNED name -> version, written by `luarocks build --pin`)
+-- Body is always `return { ... }`; this file is parsed statically, never eval'd.
+return {
+   dependencies = {
+      luafilesystem = "1.8.0-1",
+      penlight = "1.13.1-1",
+      ["lua-cjson"] = "2.1.0.10-1",
+      lua = "5.4"
+   },
+   build_dependencies = {
+      busted = "2.2.0-1"
+   }
+}

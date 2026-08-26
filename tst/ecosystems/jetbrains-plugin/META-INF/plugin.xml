@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<idea-plugin>
+  <id>com.example.aihelper</id>
+  <name>AI Code Helper</name>
+  <version>1.4.2</version>
+  <vendor email="dev@example.com" url="https://example.com">Example Labs</vendor>
+  <idea-version since-build="233" until-build="251.*"/>
+  <description><![CDATA[
+    Adds AI-powered code completion and chat. Configure your API key in settings.
+  ]]></description>
+  <change-notes><![CDATA[
+    <ul><li>Improved completion (version 1.4.2 of the model adapter)</li></ul>
+  ]]></change-notes>
+  <depends>com.intellij.modules.platform</depends>
+  <extensions defaultExtensionNs="com.intellij">
+    <applicationConfigurable instance="com.example.aihelper.SettingsConfigurable"/>
+  </extensions>
+</idea-plugin>

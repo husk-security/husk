@@ -1,0 +1,29 @@
+# pnpm-workspace.yaml — pnpm catalog fixture (default + named catalogs)
+packages:
+  - "packages/*"
+  - "apps/*"
+
+catalog:
+  # exact pins — extracted
+  left-pad: 1.3.0
+  "@scope/utils": 2.4.1
+  # ranges / wildcards — skipped
+  react: ^18.2.0
+  typescript: ~5.4.0
+  lodash: "*"
+
+catalogs:
+  react17:
+    react: 17.0.2          # exact pin — extracted
+    react-dom: 17.0.2      # exact pin — extracted
+  react18:
+    react: ^18.3.1         # range — skipped
+    react-dom: "18.3.1"    # exact pin (quoted) — extracted
+  misc:
+    semver: =7.5.4         # =exact — extracted as 7.5.4
+    aliased: "npm:underscore@1.13.6"   # alias — skipped
+    ws-dep: "workspace:*"  # workspace — skipped
+
+overrides:
+  # not a declared direct dep — skipped
+  glob: 9.0.0

@@ -1,0 +1,8 @@
+{
+  "packages": [
+    { "name": "monolog/monolog", "version": "2.8.0" }
+  ],
+  "packages-dev": [
+    { "name": "phpunit/phpunit", "version": "v9.5.0" }
+  ]
+}

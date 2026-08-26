@@ -1,0 +1,7 @@
+packages:
+  http:
+    dependency: "direct main"
+    source: hosted
+    version: "0.13.5"
+sdks:
+  dart: ">=2.17.0 <3.0.0"

@@ -1,0 +1,21 @@
+opam-version: "2.0"
+name: "myproject"
+version: "0.1.0"
+synopsis: "An example project (intentionally pinned fixture)"
+maintainer: "dev@example.com"
+authors: "dev@example.com"
+license: "MIT"
+depends: [
+  "ocaml" {= "5.1.1"}
+  "dune" {= "3.10.0"}
+  "cmdliner" {= "1.2.0"}
+  "lwt" {= "5.7.0"}
+  "yojson" {>= "2.0.0"}
+  "logs" {= "0.7.0" & with-test}
+]
+depopts: [
+  "tls" {= "0.17.3"}
+]
+pin-depends: [
+  ["mylib.dev" "git+https://example.com/mylib.git#main"]
+]

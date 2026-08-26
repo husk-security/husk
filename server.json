@@ -1,0 +1,45 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.husk-security/husk",
+  "title": "Husk",
+  "description": "Local-first defensive scanner for vulnerable dependencies, leaked secrets, and risky agent configs",
+  "version": "0.1.0",
+  "websiteUrl": "https://husk-security.dev",
+  "repository": {
+    "url": "https://github.com/husk-security/husk",
+    "source": "github",
+    "id": "1245033167"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "husk-sec",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "valueHint": "subcommand",
+          "value": "mcp"
+        }
+      ]
+    },
+    {
+      "registryType": "cargo",
+      "identifier": "husk-sec",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "valueHint": "subcommand",
+          "value": "mcp"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "components": [
+    { "type": "library", "name": "lodash", "version": "4.17.21", "purl": "pkg:npm/lodash@4.17.21" },
+    { "type": "library", "name": "serde", "version": "1.0.197", "purl": "pkg:cargo/serde@1.0.197" },
+    { "type": "library", "name": "guava", "purl": "pkg:maven/com.google.guava/guava@33.0.0-jre" },
+    { "type": "library", "name": "requests", "purl": "pkg:pypi/requests@2.31.0" }
+  ]
+}

@@ -1,0 +1,284 @@
+# The test and lint gate. release.yml only builds and signs a tag, so this is
+# the only place the suite runs.
+#
+# The Rust toolchain is pinned rather than floating on `stable`, so clippy and
+# rustfmt give reproducible results. Bump it in lockstep with `rust-version` in
+# Cargo.toml.
+#
+# Every third-party action is pinned to a full commit SHA, with the tag in a
+# trailing comment, because husk itself flags actions that are not SHA-pinned.
+# release.yml reuses the same SHAs; when bumping an action, update the SHA and
+# the comment together, in both files.
+
+name: ci
+
+# Plain `pull_request`, never `pull_request_target`: the job gets a read-only
+# token and no repository secrets, so a contributor's code can run without a
+# per-pull-request approval.
+#
+# Jobs pick their runner from repository visibility: a self-hosted `husk-ci`
+# pool while private, GitHub-hosted once public. That pool shares a cluster with
+# production, so a public repository must never schedule an untrusted fork's
+# code onto it.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  # A compiler warning fails every job, not only the clippy one.
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  lint:
+    name: rustfmt + clippy
+    runs-on: ${{ github.event.repository.private && 'husk-ci' || 'ubuntu-latest' }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: "1.95.0"
+          components: rustfmt, clippy
+
+      # The self-hosted runner image ships no C toolchain; Rust needs a linker.
+      - name: Install build deps
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential pkg-config libssl-dev
+
+      - name: Cache cargo build
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: lint
+
+      # The default `web` feature embeds web/dist via rust-embed, so the front-end
+      # must be built before any cargo command that compiles the crate.
+      - name: Build web UI
+        uses: ./.github/actions/build-web
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Clippy (warnings denied)
+        run: cargo clippy --all-targets --locked -- -D warnings
+
+  test:
+    name: cargo test
+    runs-on: ${{ github.event.repository.private && 'husk-ci' || 'ubuntu-latest' }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: "1.95.0"
+
+      # The self-hosted runner image ships no C toolchain; Rust needs a linker.
+      - name: Install build deps
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential pkg-config libssl-dev
+
+      - name: Cache cargo build
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: test
+
+      - name: Build web UI
+        uses: ./.github/actions/build-web
+
+      - name: Run tests
+        run: cargo test --locked --all-targets
+
+      # `--all-targets` excludes doc-tests, so run them explicitly.
+      - name: Run doc-tests
+        run: cargo test --doc --locked
+
+  # A subset of release.yml's cross-compile matrix: the Linux target every CI
+  # run uses, plus Apple silicon because husk reads macOS-specific config paths
+  # that can break behind cfg(target_os).
+  build:
+    name: build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    # The Apple-silicon leg always runs GitHub-hosted, since the self-hosted
+    # pool is Linux-only, and it cannot start while the repository is private.
+    # Drop `continue-on-error` once it has passed on a public repository.
+    continue-on-error: ${{ matrix.os == 'macos-15' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ${{ github.event.repository.private && 'husk-ci' || 'ubuntu-latest' }}
+          - target: aarch64-apple-darwin
+            os: macos-15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # GitHub-hosted macOS already carries a C toolchain; the self-hosted Linux
+      # runner does not.
+      - name: Install build deps (Linux self-hosted runner)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential pkg-config libssl-dev
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: "1.95.0"
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo build
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Build web UI
+        uses: ./.github/actions/build-web
+
+      - name: Build
+        run: cargo build --locked --all-targets --target ${{ matrix.target }}
+
+  build-no-web:
+    name: build (no web feature)
+    runs-on: ${{ github.event.repository.private && 'husk-ci' || 'ubuntu-latest' }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: "1.95.0"
+          components: clippy
+
+      # The self-hosted runner image ships no C toolchain; Rust needs a linker.
+      - name: Install build deps
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential pkg-config libssl-dev
+
+      - name: Cache cargo build
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: no-web
+
+      # No web/dist and no npm: that is the point of this job. It runs the test
+      # suite too, so TUI-only code paths are exercised and not merely compiled.
+      - name: Build + clippy + test (TUI-only)
+        run: |
+          cargo build --no-default-features --locked --all-targets
+          cargo clippy --no-default-features --all-targets --locked -- -D warnings
+          cargo test --no-default-features --locked --all-targets
+          cargo test --no-default-features --locked --doc
+
+  hygiene:
+    name: deps + repo hygiene
+    runs-on: ${{ github.event.repository.private && 'husk-ci' || 'ubuntu-latest' }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: "1.95.0"
+
+      - name: Cache cargo build
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: hygiene
+
+      - name: Install hygiene tools (prebuilt binaries)
+        uses: taiki-e/install-action@ba47c86ac325773530516bb756137ac718732518 # v2.86.5
+        with:
+          tool: cargo-deny,cargo-machete,typos-cli,taplo-cli
+
+      - name: cargo-deny (advisories, bans, licenses, sources)
+        run: cargo deny check
+
+      - name: cargo-machete (no unused dependencies)
+        run: cargo machete
+
+      - name: typos (spell check)
+        run: typos
+
+      - name: taplo (TOML formatting)
+        run: taplo fmt --check
+
+  web:
+    name: web UI (vite + react)
+    runs-on: ${{ github.event.repository.private && 'husk-ci' || 'ubuntu-latest' }}
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          # Keep in lockstep with the build-web composite action.
+          node-version: "24.16.0"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck (tsc)
+        run: npm run typecheck
+
+      - name: Lint + format (Biome)
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: No em/en dashes in user-facing text
+        run: npm run check:dashes
+
+  # One always-running aggregate, so the whole gate reports as a single
+  # fail-closed result and a skipped code job cannot be read as a passing one.
+  # `if: always()` means it runs even when no code job started, so once the
+  # repository is public it must not be schedulable onto the self-hosted pool by
+  # an untrusted event. It only reads job results, so hosted is enough.
+  ci-gate:
+    name: ci-gate
+    if: always()
+    needs: [lint, test, build, build-no-web, hygiene, web]
+    runs-on: ${{ github.event.repository.private && 'husk-ci' || 'ubuntu-latest' }}
+    steps:
+      - name: Require every code job
+        env:
+          LINT: ${{ needs.lint.result }}
+          TEST: ${{ needs.test.result }}
+          BUILD: ${{ needs.build.result }}
+          BUILD_NO_WEB: ${{ needs['build-no-web'].result }}
+          HYGIENE: ${{ needs.hygiene.result }}
+          WEB: ${{ needs.web.result }}
+        run: |
+          set -euo pipefail
+          for result in \
+            "$LINT" "$TEST" "$BUILD" \
+            "$BUILD_NO_WEB" "$HYGIENE" "$WEB"; do
+            [ "$result" = success ] || {
+              echo "A CI job did not succeed." >&2
+              exit 1
+            }
+          done

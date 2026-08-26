@@ -1,0 +1,15 @@
+{"1.2.0",
+[{<<"cowboy">>,{pkg,<<"cowboy">>,<<"2.10.0">>},0},
+ {<<"ranch">>,{pkg,<<"ranch">>,<<"1.8.0">>},1},
+ {<<"ssl_verify_fun">>,{pkg,<<"ssl_verify_fun">>,<<"1.1.7">>},0},
+ {<<"my_fork">>,{git,"https://github.com/example/dep.git",{ref,"a1b2c3d4e5f60718293a4b5c6d7e8f9001122334"}},0}]}.
+[
+{pkg_hash,[
+ {<<"cowboy">>, <<"FF9FFEFF91DAE4AE270DD975642997AFE2A1179D94B1887863E43F681A203E26">>},
+ {<<"ranch">>, <<"8C7A100A139FD57F17327B6413E4167AC559FBC04CA7448E9BE9057311597A1D">>},
+ {<<"ssl_verify_fun">>, <<"354C321CF377240C7B8716899E182CE4890C5938111A1296ADD3EC74CF1715DF">>}]},
+{pkg_hash_ext,[
+ {<<"cowboy">>, <<"3FBCD9A1457C7327D2D7DD32C20C612A7D0F840A2DF7F1AB4E61C2C57A360BF8">>},
+ {<<"ranch">>, <<"49FBCFD3682FAB1F5D109351B61257676DA1A2FDBE295904176D5E521A2DDFE5">>},
+ {<<"ssl_verify_fun">>, <<"FE4C190E8F37401D30167C8C405EDA19469F34577987C76DDE613E838BBC67F8">>}]}
+].

@@ -1,0 +1,12 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    rails (7.0.4)
+      actionpack (= 7.0.4)
+    nokogiri (1.13.9-x86_64-linux)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  rails

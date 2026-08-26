@@ -1,0 +1,4 @@
+dir /usr/bin
+obj /usr/bin/vim 0d9856299a0e4c7b9aef7a6f0d2c54f1 1718200000
+sym /usr/bin/vi -> vim 1718200000
+dir /usr/share/vim

@@ -1,0 +1,7 @@
+[wrap-git]
+url = https://github.com/catchorg/Catch2.git
+revision = v3.5.2
+depth = 1
+
+[provide]
+dependency_names = catch2, catch2-with-main

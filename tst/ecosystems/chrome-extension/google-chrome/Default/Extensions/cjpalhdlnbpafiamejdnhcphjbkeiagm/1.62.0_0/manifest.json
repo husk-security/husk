@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "uBlock Origin",
+  "version": "1.62.0",
+  "default_locale": "en",
+  "description": "An efficient blocker.",
+  "permissions": ["storage", "scripting"],
+  "background": { "service_worker": "background.js" }
+}

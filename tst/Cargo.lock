@@ -1,0 +1,8 @@
+# This file is intentionally tiny and unsafe for Husk scanner tests.
+version = 3
+
+[[package]]
+name = "time"
+version = "0.1.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0000000000000000000000000000000000000000000000000000000000000000"

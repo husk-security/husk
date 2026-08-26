@@ -1,0 +1,32 @@
+{
+  "$schema": "https://aka.ms/winget-packages.schema.2.0.json",
+  "CreationDate": "2026-06-19T10:15:00.000-00:00",
+  "Sources": [
+    {
+      "Packages": [
+        { "PackageIdentifier": "Microsoft.PowerToys", "Version": "0.81.0" },
+        { "PackageIdentifier": "Python.Python.3.12", "Version": "3.12.4", "Scope": "user" },
+        { "PackageIdentifier": "Google.Chrome", "Version": "126.0.6478.127" },
+        { "PackageIdentifier": "Mozilla.Firefox" }
+      ],
+      "SourceDetails": {
+        "Argument": "https://cdn.winget.microsoft.com/cache",
+        "Identifier": "Microsoft.Winget.Source_8wekyb3d8bbwe",
+        "Name": "winget",
+        "Type": "Microsoft.PreIndexed.Package"
+      }
+    },
+    {
+      "Packages": [
+        { "PackageIdentifier": "9WZDNCRFJ3PZ", "Version": "Unknown" }
+      ],
+      "SourceDetails": {
+        "Argument": "https://storeedgefd.dsx.mp.microsoft.com/v9.0",
+        "Identifier": "StoreEdgeFD",
+        "Name": "msstore",
+        "Type": "Microsoft.Rest"
+      }
+    }
+  ],
+  "WinGetVersion": "1.8.1911"
+}

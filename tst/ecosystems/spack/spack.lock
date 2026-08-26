@@ -1,0 +1,48 @@
+{
+  "_meta": {
+    "file-type": "spack-lockfile",
+    "lockfile-version": 5,
+    "specfile-version": 4
+  },
+  "roots": [
+    { "hash": "abc123def456ghi789jkl012mno345pq", "spec": "hdf5@1.14.3 +mpi" },
+    { "hash": "zyx987wvu654tsr321qpo098nml765kj", "spec": "zlib@1.3.1" }
+  ],
+  "concrete_specs": {
+    "abc123def456ghi789jkl012mno345pq": {
+      "name": "hdf5",
+      "version": "1.14.3",
+      "arch": { "platform": "linux", "target": "x86_64" },
+      "compiler": { "name": "gcc", "version": "11.4.0" },
+      "parameters": { "mpi": true },
+      "dependencies": [
+        { "name": "zlib", "hash": "zyx987wvu654tsr321qpo098nml765kj", "type": ["build", "link"] },
+        { "name": "openmpi", "hash": "mpi111aaa222bbb333ccc444ddd555eee", "type": ["build", "link"] }
+      ]
+    },
+    "zyx987wvu654tsr321qpo098nml765kj": {
+      "name": "zlib",
+      "version": "1.3.1",
+      "arch": { "platform": "linux", "target": "x86_64" },
+      "compiler": { "name": "gcc", "version": "11.4.0" },
+      "parameters": {},
+      "dependencies": []
+    },
+    "mpi111aaa222bbb333ccc444ddd555eee": {
+      "name": "openmpi",
+      "version": "4.1.5",
+      "arch": { "platform": "linux", "target": "x86_64" },
+      "compiler": { "name": "gcc", "version": "11.4.0" },
+      "parameters": {},
+      "dependencies": []
+    },
+    "pynpyaaa222bbb333ccc444ddd555fff": {
+      "name": "py-numpy",
+      "version": "1.26.0",
+      "arch": { "platform": "linux", "target": "x86_64" },
+      "compiler": { "name": "gcc", "version": "11.4.0" },
+      "parameters": {},
+      "dependencies": []
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "manifest_version": 3,
+  "name": "__MSG_appName__",
+  "version": "2.0.13",
+  "default_locale": "en"
+}

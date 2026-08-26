@@ -1,0 +1,15 @@
+{
+  "name": "numpy",
+  "version": "1.26.4",
+  "build": "py312h7d8d0a2_0",
+  "build_number": 0,
+  "channel": "https://conda.anaconda.org/conda-forge/linux-64",
+  "subdir": "linux-64",
+  "fn": "numpy-1.26.4-py312h7d8d0a2_0.conda",
+  "url": "https://conda.anaconda.org/conda-forge/linux-64/numpy-1.26.4-py312h7d8d0a2_0.conda",
+  "md5": "1c0c93c5b3b6d6a0a1b1c2d3e4f5a6b7",
+  "license": "BSD-3-Clause",
+  "depends": ["libgcc-ng >=12", "python >=3.12,<3.13.0a0"],
+  "constrains": [],
+  "timestamp": 1707225600000
+}

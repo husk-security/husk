@@ -1,0 +1,19 @@
+# Gradle version catalog (declared coordinates). The resolved ground truth
+# lives in gradle.lockfile; this is the direct-dependency inventory fallback.
+[versions]
+guava = "32.1.2-jre"
+spring = "5.3.29"
+log4j = "2.14.1"
+
+[libraries]
+guava = { module = "com.google.guava:guava", version.ref = "guava" }
+spring-core = { group = "org.springframework", name = "spring-core", version.ref = "spring" }
+# Log4Shell-vulnerable (CVE-2021-44228) — a known-bad positive test case.
+log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
+commons-lang3 = "org.apache.commons:commons-lang3:3.12.0"
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version = "3.1.2" }
+
+[bundles]
+common = ["guava", "spring-core"]

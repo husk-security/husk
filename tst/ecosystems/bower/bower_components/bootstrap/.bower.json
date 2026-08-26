@@ -1,0 +1,15 @@
+{
+  "name": "bootstrap",
+  "version": "3.3.7",
+  "main": ["less/bootstrap.less", "dist/js/bootstrap.js"],
+  "license": "MIT",
+  "_release": "3.3.7",
+  "_resolution": {
+    "type": "version",
+    "tag": "v3.3.7",
+    "commit": "0b9c4a4007c44201dce9a6cc1a38407005c26c86"
+  },
+  "_source": "https://github.com/twbs/bootstrap.git",
+  "_target": "~3.3.7",
+  "_originalSource": "bootstrap"
+}

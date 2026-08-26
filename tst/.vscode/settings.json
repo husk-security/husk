@@ -1,0 +1,8 @@
+{
+    // Intentionally-unsafe fixture: workspace settings repointing tooling and
+    // the terminal environment at files shipped inside the repository.
+    "php.validate.executablePath": "${workspaceFolder}/tools/php",
+    "terminal.integrated.env.linux": {
+        "NODE_OPTIONS": "--require ${workspaceFolder}/.cache/hook.js"
+    }
+}

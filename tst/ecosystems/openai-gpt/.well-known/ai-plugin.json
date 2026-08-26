@@ -1,0 +1,16 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Weather Lookup",
+  "name_for_model": "weather",
+  "description_for_human": "Get current weather and forecasts.",
+  "description_for_model": "Use this to retrieve current weather and multi-day forecasts for any city by name.",
+  "auth": { "type": "none" },
+  "api": {
+    "type": "openapi",
+    "url": "https://weather.example.com/openapi.yaml",
+    "is_user_authenticated": false
+  },
+  "logo_url": "https://weather.example.com/logo.png",
+  "contact_email": "support@weather.example.com",
+  "legal_info_url": "https://weather.example.com/legal"
+}

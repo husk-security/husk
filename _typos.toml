@@ -1,0 +1,50 @@
+# https://github.com/crate-ci/typos
+
+[default]
+extend-ignore-re = [
+  # @font-face `unicode-range` lists contain hex like U+02BA, which typos reads
+  # as the word "BA". Ignore the whole unicode-range declaration.
+  "unicode-range:[^;]*",
+  # "UPnP" (Universal Plug and Play): typos misreads the "Pn" as "On".
+  "UPnP",
+  # DMARC DNS records carry tags like `fo=1` (failure-reporting options) that
+  # typos misreads as words; ignore the record value verbatim.
+  "v=DMARC1[^\"]*",
+]
+
+[default.extend-words]
+# "requets" is an intentional typosquat example (a fake package mimicking
+# "requests"); it must stay misspelled to make the point.
+requets = "requets"
+# Ratatui is the actual Rust TUI crate husk's terminal UI is built on.
+Ratatui = "Ratatui"
+ratatui = "ratatui"
+# HashiCorp is a proper noun (HashiCorp Vault).
+Hashi = "Hashi"
+# "intoto" is the in-toto attestation format (SLSA provenance .intoto.jsonl).
+intoto = "intoto"
+# Ecosystem-scanner domain vocabulary (src/scan/targets/*):
+# EDN = Clojure's Extensible Data Notation (deps.edn); also the `Edn` AST type.
+edn = "edn"
+Edn = "Edn"
+EDN = "EDN"
+# Paket = the .NET/NuGet alternative package manager (paket.lock).
+paket = "paket"
+Paket = "Paket"
+# Gentoo PMS variables: PN = package name, PV = version, etc.
+pn = "pn"
+PN = "PN"
+# "mis-" prefix (mis-parse, mis-ingesting, mis-attributed): valid English.
+mis = "mis"
+# "unparseable": valid variant of unparsable.
+unparseable = "unparseable"
+Unparseable = "Unparseable"
+# `rela` is the relation half of a (version, relation) split in providers.rs.
+rela = "rela"
+# "numvers" is a fixture package name in a Spack test.
+numvers = "numvers"
+# AKS = Azure Kubernetes Service (`az aks get-credentials`).
+aks = "aks"
+
+[files]
+extend-exclude = [".direnv/", "target/", "Cargo.lock", "assets/", "tst/"]

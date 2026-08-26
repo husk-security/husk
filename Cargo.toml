@@ -1,0 +1,109 @@
+[package]
+name = "husk-sec"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Local-first developer security scanner with TUI and localhost web UI"
+repository = "https://github.com/husk-security/husk"
+homepage = "https://github.com/husk-security/husk"
+readme = "README.md"
+keywords = ["security", "scanner", "vulnerabilities", "secrets", "supply-chain"]
+categories = ["command-line-utilities", "development-tools"]
+# Matches the toolchain pinned in .github/workflows/ci.yml.
+rust-version = "1.95"
+# Keep the crates.io package to what the build needs. `tst/` must never ship: it
+# is intentionally-vulnerable fixtures, including planted fake secrets and
+# prompt-injection patterns, that would trip a downstream user's secret scanner.
+include = [
+  "/src/**",
+  "/guides/**",
+  "/build.rs",
+  "/integrations/husk-agent-guide.md",
+  "/web/dist/**",
+  "/web/GEIST-OFL.txt",
+  "/LICENSE",
+  "/README.md",
+]
+
+[lib]
+name = "husk"
+path = "src/lib.rs"
+
+[[bin]]
+name = "husk"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0.103"
+hex = "0.4.3"
+oauth2 = { version = "5", default-features = false, features = [
+  "reqwest",
+  "rustls-tls",
+] }
+sha2 = "0.11.0"
+# Restores the default SIGPIPE disposition in main; a safe wrapper, so the
+# crate keeps `forbid(unsafe_code)`.
+sigpipe = "0.1.3"
+
+axum = { version = "0.8.9", optional = true }
+chrono = { version = "0.4.45", features = ["serde"] }
+clap = { version = "4.6.1", features = ["derive"] }
+crossterm = "0.29.0"
+dirs = "6.0.0"
+futures = "0.3.32"
+ignore = "0.4.28"
+regex = "1.13.0"
+# Held at 0.12 (latest is 0.13): oauth2 5.0 (the latest oauth2) still depends on
+# reqwest 0.12 and has no 0.13-compatible release, so the whole HTTP stack stays
+# on the 0.12 line for coherence. Bump to 0.13 (feature `rustls`, renamed from
+# `rustls-tls`) once oauth2 ships reqwest-0.13 support.
+reqwest = { version = "0.12", default-features = false, features = [
+  "json",
+  "rustls-tls",
+  "http2",
+  "stream",
+] }
+tempfile = "3.27.0"
+ratatui = "0.30.2"
+rusqlite = { version = "0.40.1", features = ["bundled"] }
+rust-embed = { version = "8.12.0", features = ["mime-guess"], optional = true }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = { version = "1.0.150", features = ["preserve_order"] }
+# The diff every surface shows for a fix. Line-level only, so the default
+# feature set is more than husk needs.
+similar = { version = "3.1.1", default-features = false, features = ["text"] }
+tokio = { version = "1.52.3", features = ["full"] }
+toml = "1.1.2"
+toml_edit = "0.25.12"
+urlencoding = "2.1.3"
+zip = { version = "8.6.0", default-features = false, features = ["deflate"] }
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+[features]
+default = ["web"]
+# The localhost web UI. Embeds the built Vite app via rust-embed, so the
+# front-end must be built first (`npm --prefix web ci && npm --prefix web run
+# build`); web/dist is gitignored, and `cargo publish` needs it present so the
+# packaged crate carries the assets. `cargo build --no-default-features` builds
+# a TUI-only binary that needs no Node toolchain.
+web = ["dep:axum", "dep:rust-embed"]
+
+[build-dependencies]
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+toml = "1.1.2"
+
+# cargo-binstall templates. Must stay in sync with .github/workflows/release.yml:
+#   - The asset stem is `husk-${GITHUB_REF_NAME}-${target}`, so the filename
+#     embeds the tag's leading `v`. binstall's `{ version }` is the bare crate
+#     version, so that `v` is hardcoded below.
+#   - The archive layout is flat, with the binary at the archive root, so
+#     `bin-dir` carries no wrapping directory. If the workflow ever nests a
+#     `husk-v{version}-{target}/` directory, this becomes
+#     `husk-v{ version }-{ target }/husk{ binary-ext }`.
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/husk-v{ version }-{ target }{ archive-suffix }"
+bin-dir = "husk{ binary-ext }"
+pkg-fmt = "tgz"

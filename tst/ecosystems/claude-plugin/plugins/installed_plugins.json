@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "plugins": {
+    "security-guidance@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/home/dev/.claude/plugins/cache/claude-plugins-official/security-guidance/2.0.3",
+        "version": "2.0.3",
+        "installedAt": "2026-06-12T23:43:22.712Z",
+        "lastUpdated": "2026-06-12T23:43:22.712Z"
+      }
+    ],
+    "example-tools@example-marketplace": [
+      {
+        "scope": "user",
+        "installPath": "/home/dev/.claude/plugins/cache/example-marketplace/example-tools/0.0.3",
+        "version": "0.0.3",
+        "installedAt": "2026-06-01T08:35:15.782Z",
+        "lastUpdated": "2026-06-08T10:17:31.618Z",
+        "gitCommitSha": "0123456789abcdef0123456789abcdef01234567"
+      }
+    ],
+    "frontend-design@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/home/dev/.claude/plugins/cache/claude-plugins-official/frontend-design/unknown",
+        "version": "unknown",
+        "installedAt": "2026-06-12T23:42:26.930Z",
+        "lastUpdated": "2026-06-12T23:42:26.930Z"
+      }
+    ]
+  }
+}

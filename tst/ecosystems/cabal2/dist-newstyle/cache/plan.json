@@ -1,0 +1,51 @@
+{
+  "cabal-version": "3.10.2.1",
+  "cabal-lib-version": "3.10.2.1",
+  "compiler-id": "ghc-9.6.4",
+  "os": "linux",
+  "arch": "x86_64",
+  "install-plan": [
+    {
+      "type": "pre-existing",
+      "id": "base-4.18.2.0",
+      "pkg-name": "base",
+      "pkg-version": "4.18.2.0",
+      "depends": ["ghc-prim-0.10.0", "ghc-bignum-1.3"]
+    },
+    {
+      "type": "configured",
+      "id": "aeson-2.2.3.0-inplace",
+      "pkg-name": "aeson",
+      "pkg-version": "2.2.3.0",
+      "style": "global",
+      "pkg-src-sha256": "0e4e5e",
+      "components": {
+        "lib": {
+          "depends": ["base-4.18.2.0", "bytestring-0.11.5.3", "text-2.0.2"]
+        }
+      },
+      "flags": {},
+      "exe-depends": []
+    },
+    {
+      "type": "configured",
+      "id": "text-2.0.2",
+      "pkg-name": "text",
+      "pkg-version": "2.0.2",
+      "style": "local"
+    },
+    {
+      "type": "configured",
+      "id": "my-app-0.1.0.0-inplace-my-app",
+      "pkg-name": "my-app",
+      "pkg-version": "0.1.0.0",
+      "style": "inplace",
+      "dist-dir": "/home/dev/my-app/dist-newstyle/build/x86_64-linux/ghc-9.6.4/my-app-0.1.0.0",
+      "components": {
+        "exe:my-app": {
+          "depends": ["aeson-2.2.3.0-inplace", "base-4.18.2.0"]
+        }
+      }
+    }
+  ]
+}

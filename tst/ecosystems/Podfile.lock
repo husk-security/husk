@@ -1,0 +1,6 @@
+PODS:
+  - Alamofire (5.6.4)
+  - AFNetworking/Core (4.0.1)
+
+DEPENDENCIES:
+  - Alamofire

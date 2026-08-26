@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 2,
+  "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+  "config": {
+    "mediaType": "application/vnd.docker.container.image.v1+json",
+    "digest": "sha256:3f8eb4da87fa7a3c9da615036b0dc418d31fef2a30b115ff33562588b32c691d",
+    "size": 485
+  },
+  "layers": [
+    { "mediaType": "application/vnd.ollama.image.model",    "digest": "sha256:6a0746a1ec1aef3e7ec53868f220ff6e389f6f8ef87a01d77c96807de94ca2aa", "size": 4661211424 },
+    { "mediaType": "application/vnd.ollama.image.license",  "digest": "sha256:4fa551d4f938f68b8c1e6afa9d28befb70e3f33f75d0753248d530364aeea40f", "size": 12403 },
+    { "mediaType": "application/vnd.ollama.image.template", "digest": "sha256:8ab4849b038cf0abc5b1c9b8ee1443dca6b93a045c2272180d985126eb40bf6f", "size": 254 },
+    { "mediaType": "application/vnd.ollama.image.params",   "digest": "sha256:577073ffcc6ce95b9981eacc77d1039568639e5638e83044994560d9ef82ce1b", "size": 110 }
+  ]
+}

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>git</id>
+    <version>2.43.0</version>
+    <title>Git</title>
+    <authors>The Git Development Community</authors>
+    <description>Git is a distributed version control system.</description>
+    <dependencies>
+      <dependency id="git.install" version="2.43.0" />
+    </dependencies>
+  </metadata>
+</package>

@@ -1,0 +1,64 @@
+# OpenSSF Scorecard: publishes supply-chain health results to the Security tab
+# as SARIF, and to the OpenSSF API for a score badge. Both the publish step and
+# GitHub-hosted runners require a public repository, so the analysis job is
+# gated on repository visibility and begins running when it changes.
+#
+# Every action is pinned to a full commit SHA, as in ci.yml and release.yml.
+name: scorecard
+
+on:
+  # Re-score when branch protection changes (a key Scorecard signal).
+  branch_protection_rule:
+  push:
+    branches: [main]
+
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    if: github.event.repository.private != true
+    permissions:
+      # Needed by actions/checkout to fetch the repository.
+      contents: read
+      # Needed by Scorecard for commit and SAST queries.
+      issues: read
+      pull-requests: read
+      checks: read
+      # Needed by upload-sarif to read workflow metadata.
+      actions: read
+      # Upload the SARIF result to the Security tab.
+      security-events: write
+      # Needed for the OpenSSF publish (OIDC), and to read branch protection.
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run analysis
+        uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          # Publishes the score to the OpenSSF API, which requires a public
+          # repository.
+          publish_results: true
+
+      # Keep the raw SARIF as a build artifact for debugging a score drop.
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: scorecard-results
+          path: results.sarif
+          retention-days: 5
+
+      - name: Upload SARIF to code scanning
+        # Code scanning may not be enabled for the repository; continue so
+        # the analysis and artifact upload above still count as success.
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4.37.8
+        with:
+          sarif_file: results.sarif

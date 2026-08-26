@@ -1,0 +1,5 @@
+# https://taplo.tamasfe.dev
+# tst/ holds real-world-shaped scanner fixtures that must mirror what the tools
+# actually emit, not husk's own formatting, so it is excluded.
+
+exclude = [".direnv/**", "target/**", "result*/**", "tst/**"]

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<idea-plugin>
+  <id>com.jetbrains.python</id>
+  <name>Python</name>
+  <version>251.23774.435</version>
+  <vendor>JetBrains s.r.o.</vendor>
+  <idea-version since-build="251.23774" until-build="251.*"/>
+  <depends>com.intellij.modules.platform</depends>
+</idea-plugin>

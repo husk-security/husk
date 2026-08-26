@@ -1,0 +1,34 @@
+.{
+    .name = .my_app,
+    .version = "0.3.1",
+    .fingerprint = 0x1c2b3a4d5e6f7081,
+    .minimum_zig_version = "0.14.0",
+    .dependencies = .{
+        // modern hash: embeds name + semver + base64url digest
+        .mime = .{
+            .url = "https://github.com/andrewrk/mime/archive/refs/tags/3.0.0.tar.gz",
+            .hash = "mime-3.0.0-zwmL6wgAADuFwn7grDAQDGJdIim94aDIPa6qO6GT",
+        },
+        // semver with a pre-release segment (note interior hyphen)
+        .chameleon = .{
+            .url = "https://github.com/tr1ckydev/chameleon/archive/2.1.0-rc.1.tar.gz",
+            .hash = "chameleon-2.1.0-rc.1-Vp9QwL3cAAB1nT2yqk4mXo7eRsBbkZ0aQ",
+            .lazy = true,
+        },
+        // legacy (<=0.13) hash: bare multihash, NO embedded version
+        .zig_llm = .{
+            .url = "https://github.com/example/zig-llm/archive/abc123.tar.gz",
+            .hash = "1220145cd26ccbbf94dd8c23c4d66acc4fbf56cec2c876592000732ce6b7481278b9",
+        },
+        // local/path dependency: no url/hash, no version — skipped
+        .internal_util = .{
+            .path = "libs/internal_util",
+        },
+    },
+    .paths = .{
+        "",
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}

@@ -1,0 +1,3 @@
+rock_manifest = {
+   ["penlight-1.13.1-1.rockspec"] = "deadbeef",
+}

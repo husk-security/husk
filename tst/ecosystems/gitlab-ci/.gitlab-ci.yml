@@ -1,0 +1,29 @@
+# Example GitLab CI config using CI/CD components (inventory fixture)
+stages:
+  - build
+  - test
+
+include:
+  # Exact-tag pinned component (3-digit semver, fully pinned)
+  - component: gitlab.com/components/sast/sast@2.3.1
+    inputs:
+      stage: test
+  # Self-hosted instance component pinned to a partial minor (range, NOT pinned)
+  - component: $CI_SERVER_FQDN/my-org/security-components/secret-detection@1.0
+    inputs:
+      stage: build
+  # Commit-SHA pinned (immutable) component
+  - component: gitlab.com/components/code-quality/code-quality@e3262fdd0914fa823210cdb79a8c421e2cef79d8
+  # Floating ref — surfaces as unpinned hygiene finding
+  - component: gitlab.com/components/container-scanning/container-scanning@~latest
+  # NON-component include forms that must be IGNORED by the component extractor:
+  - template: Auto-DevOps.gitlab-ci.yml
+  - project: 'my-group/my-shared-ci'
+    ref: main
+    file: '/templates/.deploy.yml'
+  - remote: 'https://gitlab.example.com/raw/main/.before-script.yml'
+
+build-job:
+  stage: build
+  script:
+    - echo "building"
