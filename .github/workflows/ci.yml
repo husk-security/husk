@@ -16,10 +16,8 @@ name: ci
 # token and no repository secrets, so a contributor's code can run without a
 # per-pull-request approval.
 #
-# Jobs pick their runner from repository visibility: a self-hosted `husk-ci`
-# pool while private, GitHub-hosted once public. That pool shares a cluster with
-# production, so a public repository must never schedule an untrusted fork's
-# code onto it.
+# Every job runs on GitHub-hosted runners: free and effectively unlimited for a
+# public repository, and no fork's code ever reaches Husk-owned hardware.
 on:
   pull_request:
   push:
@@ -36,7 +34,7 @@ env:
 jobs:
   lint:
     name: rustfmt + clippy
-    runs-on: ${{ github.event.repository.private && 'husk-ci' || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -71,7 +69,7 @@ jobs:
 
   test:
     name: cargo test
-    runs-on: ${{ github.event.repository.private && 'husk-ci' || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -108,16 +106,12 @@ jobs:
   build:
     name: build (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
-    # The Apple-silicon leg always runs GitHub-hosted, since the self-hosted
-    # pool is Linux-only, and it cannot start while the repository is private.
-    # Drop `continue-on-error` once it has passed on a public repository.
-    continue-on-error: ${{ matrix.os == 'macos-15' }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
-            os: ${{ github.event.repository.private && 'husk-ci' || 'ubuntu-latest' }}
+            os: ubuntu-latest
           - target: aarch64-apple-darwin
             os: macos-15
     steps:
@@ -151,7 +145,7 @@ jobs:
 
   build-no-web:
     name: build (no web feature)
-    runs-on: ${{ github.event.repository.private && 'husk-ci' || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -184,7 +178,7 @@ jobs:
 
   hygiene:
     name: deps + repo hygiene
-    runs-on: ${{ github.event.repository.private && 'husk-ci' || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -220,7 +214,7 @@ jobs:
 
   web:
     name: web UI (vite + react)
-    runs-on: ${{ github.event.repository.private && 'husk-ci' || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: web
@@ -262,7 +256,7 @@ jobs:
     name: ci-gate
     if: always()
     needs: [lint, test, build, build-no-web, hygiene, web]
-    runs-on: ${{ github.event.repository.private && 'husk-ci' || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     steps:
       - name: Require every code job
         env:

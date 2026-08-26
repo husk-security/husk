@@ -18,7 +18,6 @@ jobs:
   analysis:
     name: Scorecard analysis
     runs-on: ubuntu-latest
-    if: github.event.repository.private != true
     permissions:
       # Needed by actions/checkout to fetch the repository.
       contents: read
