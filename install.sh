@@ -448,25 +448,19 @@ main() {
     info "cosign verification disabled (HUSK_NO_COSIGN / --no-cosign)."
   elif has cosign; then
     info "verifying cosign signature ..."
-    sig_url="${archive_url}.sig"
-    pem_url="${archive_url}.pem"
-    sig_path="${archive_path}.sig"
-    pem_path="${archive_path}.pem"
+    bundle_url="${archive_url}.sigstore.json"
+    bundle_path="${archive_path}.sigstore.json"
     # A missing signature is fatal, not a warning. The .sha256 travels the same
     # channel as the archive, so whoever can substitute one can substitute the
     # other: the checksum proves the download was not corrupted, not that it is
     # the release we published. The cosign signature is the only control here
     # that survives a hostile channel, so it must not be skippable by anything
-    # an attacker can cause (a suppressed 404 on the .sig is exactly that).
-    if ! download "$sig_url" "$sig_path"; then
-      err "could not download the cosign signature ${sig_url}. Refusing to install: the checksum alone cannot prove this archive is the release we signed. Re-run with --no-verify-signature to override at your own risk."
-    fi
-    if ! download "$pem_url" "$pem_path"; then
-      err "could not download the cosign certificate ${pem_url}. Refusing to install: the checksum alone cannot prove this archive is the release we signed. Re-run with --no-verify-signature to override at your own risk."
+    # an attacker can cause (a suppressed 404 on the bundle is exactly that).
+    if ! download "$bundle_url" "$bundle_path"; then
+      err "could not download the cosign bundle ${bundle_url}. Refusing to install: the checksum alone cannot prove this archive is the release we signed. Re-run with --no-verify-signature to override at your own risk."
     fi
     if cosign verify-blob \
-      --certificate "$pem_path" \
-      --signature "$sig_path" \
+      --bundle "$bundle_path" \
       --certificate-identity-regexp "$COSIGN_IDENTITY_RE" \
       --certificate-oidc-issuer "$COSIGN_OIDC_ISSUER" \
       "$archive_path" >/dev/null 2>&1; then

@@ -394,8 +394,7 @@ sha256sum -c "${ARCHIVE}.sha256"           # macOS: shasum -a 256 -c ...
 
 # 2. cosign signature: pin the workflow identity and the OIDC issuer
 cosign verify-blob \
-  --certificate "${ARCHIVE}.pem" \
-  --signature "${ARCHIVE}.sig" \
+  --bundle "${ARCHIVE}.sigstore.json" \
   --certificate-identity-regexp "^https://github.com/husk-security/husk/\.github/workflows/release\.yml@refs/tags/v" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   "${ARCHIVE}"
