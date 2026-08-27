@@ -204,6 +204,25 @@ colon, semicolon, or parentheses. Example: `Scanning now — results appear as t
 arrive.` becomes `Scanning now. Results appear as they arrive.` A plain hyphen (-)
 for ranges, flags, or compound words is fine; the em/en dash is what's banned.
 
+### Changelog
+
+If a change is more than cosmetic, add one line under `## Unreleased` in
+`CHANGELOG.md` in the same pull request. Write it for someone deciding whether
+to upgrade: what changed for them, not what changed in the code.
+
+```
+- Sign releases with cosign v3 Sigstore bundles
+```
+
+Skip the entry for refactors, dependency bumps, CI plumbing, test-only work,
+and pure styling. Most pull requests need no entry, and nothing enforces this:
+a changelog padded with filler is worse than a short one, so the judgement is
+the point. When unsure, ask whether a user would notice.
+
+The release reuses these lines verbatim as the GitHub release body, so they are
+the only release notes anyone writes. Install instructions and what husk is
+belong in the README, never here.
+
 ### Comments
 
 Comment only what the code cannot say: non-obvious invariants, domain facts,

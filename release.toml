@@ -1,0 +1,35 @@
+# Version bumping for `cargo release`. Six files carry husk's version and they
+# must move together: a tag whose files disagree is refused by release.yml, and
+# a plugin manifest left behind ships agents a build that looks stale.
+#
+# This only prepares the commit. Publishing is release.yml's job, triggered by
+# the tag, so `publish` and `push` stay off here.
+
+tag-name = "v{{version}}"
+tag-message = "husk {{version}}"
+
+# crates.io, npm and the MCP Registry are published by release.yml through OIDC
+# trusted publishing. A local `cargo publish` would bypass that entirely.
+publish = false
+
+# The tag is pushed by hand after the bump lands on main, because release.yml's
+# publishing jobs require a human actor and the tag must be reachable from main.
+push = false
+tag = false
+
+# `exactly` is a count assertion, not a limit: cargo-release always replaces
+# every match and fails when the total drifts. So adding a third package to
+# server.json aborts the release instead of shipping it half-bumped.
+pre-release-replacements = [
+  { file = "flake.nix", search = 'version = "[0-9]+\.[0-9]+\.[0-9]+";', replace = 'version = "{{version}}";', exactly = 1 },
+  { file = "server.json", search = '"version": "[0-9]+\.[0-9]+\.[0-9]+"', replace = '"version": "{{version}}"', exactly = 3 },
+  { file = "integrations/plugin/.claude-plugin/plugin.json", search = '"version": "[0-9]+\.[0-9]+\.[0-9]+"', replace = '"version": "{{version}}"', exactly = 1 },
+  { file = "integrations/plugin/.codex-plugin/plugin.json", search = '"version": "[0-9]+\.[0-9]+\.[0-9]+"', replace = '"version": "{{version}}"', exactly = 1 },
+  { file = "integrations/plugin/.cursor-plugin/plugin.json", search = '"version": "[0-9]+\.[0-9]+\.[0-9]+"', replace = '"version": "{{version}}"', exactly = 1 },
+  { file = "gemini-extension.json", search = '"version": "[0-9]+\.[0-9]+\.[0-9]+"', replace = '"version": "{{version}}"', exactly = 1 },
+
+  # Promote whatever accumulated under `## Unreleased` into this version and
+  # leave a fresh empty heading. Entries are written per pull request, by
+  # judgement, so nothing is generated here.
+  { file = "CHANGELOG.md", search = '## Unreleased', replace = "## Unreleased\n\n## {{version}} - {{date}}", exactly = 1 },
+]
