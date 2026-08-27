@@ -16,7 +16,7 @@
       system:
       let
         pkgs = import nixpkgs { inherit system; };
-        version = "0.1.0";
+        version = "0.1.1";
         web = pkgs.buildNpmPackage {
           pname = "husk-web";
           inherit version;

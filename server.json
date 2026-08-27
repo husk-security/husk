@@ -3,7 +3,7 @@
   "name": "io.github.husk-security/husk",
   "title": "Husk",
   "description": "Local-first defensive scanner for vulnerable dependencies, leaked secrets, and risky agent configs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "websiteUrl": "https://husk-security.dev",
   "repository": {
     "url": "https://github.com/husk-security/husk",
@@ -14,7 +14,7 @@
     {
       "registryType": "npm",
       "identifier": "husk-sec",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "transport": {
         "type": "stdio"
       },
@@ -29,7 +29,7 @@
     {
       "registryType": "cargo",
       "identifier": "husk-sec",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "transport": {
         "type": "stdio"
       },

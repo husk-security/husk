@@ -62,12 +62,12 @@ release workflow, recorded in Rekor.
 
 ```sh
 cosign verify-blob \
-  --bundle "husk-v0.1.0-x86_64-unknown-linux-gnu.tar.gz.sigstore.json" \
+  --bundle "husk-v0.1.1-x86_64-unknown-linux-gnu.tar.gz.sigstore.json" \
   --certificate-identity-regexp "^https://github.com/husk-security/husk/\.github/workflows/release\.yml@refs/tags/v" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-  "husk-v0.1.0-x86_64-unknown-linux-gnu.tar.gz"
+  "husk-v0.1.1-x86_64-unknown-linux-gnu.tar.gz"
 
-gh attestation verify "husk-v0.1.0-x86_64-unknown-linux-gnu.tar.gz" --repo husk-security/husk
+gh attestation verify "husk-v0.1.1-x86_64-unknown-linux-gnu.tar.gz" --repo husk-security/husk
 ```
 
 ## Known limits

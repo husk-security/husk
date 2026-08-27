@@ -1,6 +1,6 @@
 {
   "name": "husk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Connect Codex to the husk security scanner: registers the husk MCP server and a skill covering the husk CLI and MCP output.",
   "skills": "./skills/",
   "mcpServers": "./.mcp.json"

@@ -1,7 +1,7 @@
 {
   "name": "husk",
   "displayName": "Husk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Connect Cursor to the husk security scanner: registers the husk MCP server and a skill covering the husk CLI and MCP output.",
   "author": { "name": "Husk" },
   "homepage": "https://github.com/husk-security/husk",

@@ -1,7 +1,7 @@
 {
   "name": "husk",
   "description": "Use the husk security scanner from Claude Code. Adds the husk MCP server (scan results, findings, packages, remediations, fresh scans) and a skill covering the husk CLI and MCP output.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": { "name": "Husk" },
   "homepage": "https://github.com/husk-security/husk",
   "license": "MIT",

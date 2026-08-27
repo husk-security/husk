@@ -406,7 +406,7 @@ jobs:
           name: npm-release-${{ github.run_id }}-${{ github.run_attempt }}
           path: npm-release/
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
           compression-level: 0
 
   npm-publish:
