@@ -135,6 +135,18 @@ Add `--global` to target the user-level config instead of the project, and
 `--dry-run` to print the change without writing. The command is idempotent and
 preserves any other content in the file.
 
+Claude Code is not one of these targets; `husk mcp install claude-code` fails.
+Use Claude Code's own writer instead, or the plugin, which the user types:
+
+```sh
+claude mcp add husk -s user -- husk mcp
+```
+
+```text
+/plugin marketplace add husk-security/husk
+/plugin install husk@husk
+```
+
 ### Manual: the config shapes
 
 For Cursor (`.cursor/mcp.json`), Claude Desktop (`claude_desktop_config.json`),
