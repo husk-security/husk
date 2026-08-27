@@ -3,7 +3,7 @@
 Four commands. Everything else is the tag's job.
 
 ```sh
-cargo release 0.1.2 --execute --no-confirm
+cargo release 0.1.2 --execute --no-confirm --no-publish
 ```
 
 Bumps the version in `Cargo.toml`, `Cargo.lock`, `flake.nix`, `server.json`

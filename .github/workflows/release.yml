@@ -12,12 +12,11 @@
 # commit, and workflow in an in-toto statement. The README's "Verifying a
 # release" section documents how a downloader checks both.
 #
-# Cutting a release:
-#   1. Land everything on `main`. Bump `version` in Cargo.toml, flake.nix, and
-#      server.json (both `version` and `packages[].version`) in lockstep with
-#      the tag, and keep Cargo.lock current; the build uses `--locked`. Rewrite
-#      RELEASE_NOTES.md, which is published verbatim as the release body; the
-#      validation step refuses a tag the notes never mention.
+# Cutting a release: see RELEASING.md. In short:
+#   1. `cargo release X.Y.Z --execute --no-confirm --no-publish` on a branch,
+#      then merge it. That moves all six version files together and promotes
+#      the changelog's `## Unreleased` section; the validation step below
+#      refuses a tag whose files disagree or whose section is missing.
 #   2. `git tag -a vX.Y.Z -m "husk X.Y.Z" && git push origin vX.Y.Z`. Annotated,
 #      not lightweight: a lightweight tag has no tagger, so GitHub credits it to
 #      whoever authored the commit main happened to point at. The tag must

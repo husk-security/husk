@@ -91,6 +91,7 @@
             cargo-machete
             typos
             taplo
+            cargo-release
             nixfmt
           ];
 
