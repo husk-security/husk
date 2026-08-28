@@ -1071,6 +1071,12 @@ const OFFLINE_PROVIDERS_ROW: &str = "online providers";
 /// inventory (a bumped or removed dependency must not resurrect its
 /// advisories). Sources are matched exactly: local detector findings are
 /// never carried, because the local scan always ran.
+///
+/// The coordinate is matched *at its manifest*, not by name and version alone:
+/// a carried finding keeps the previous report's path, so matching the bare key
+/// would readmit an advisory pointing at a manifest that has since been deleted
+/// (a pruned tree, a removed project, a rolled-back `husk fix` snapshot). Every
+/// surface then offers to show a file that is not there.
 fn carry_forward_provider_findings(
     previous: &crate::model::ScanReport,
     unavailable: &[String],
@@ -1079,17 +1085,19 @@ fn carry_forward_provider_findings(
     if unavailable.is_empty() {
         return Vec::new();
     }
-    let current: std::collections::HashSet<String> = packages.iter().map(PackageRef::key).collect();
+    let current: std::collections::HashSet<(String, &std::path::Path)> = packages
+        .iter()
+        .map(|package| (package.key(), package.manifest_path.as_path()))
+        .collect();
     previous
         .findings
         .iter()
         .chain(previous.ignored.iter())
         .filter(|finding| unavailable.contains(&finding.source))
         .filter(|finding| {
-            finding
-                .package
-                .as_ref()
-                .is_some_and(|package| current.contains(&package.key()))
+            finding.package.as_ref().is_some_and(|package| {
+                current.contains(&(package.key(), package.manifest_path.as_path()))
+            })
         })
         .cloned()
         .collect()
@@ -1391,6 +1399,20 @@ mod tests {
             &["OSV.dev".to_string()],
             &[coordinate("cargo", "h2", "0.4.17")],
         );
+        assert!(carried.is_empty());
+    }
+
+    #[test]
+    fn a_coordinate_whose_manifest_is_gone_does_not_carry_its_advisory() {
+        // The same coordinate is still installed, but the manifest the previous
+        // finding names has been deleted (a rolled-back `husk fix` snapshot, a
+        // removed project). Carrying it readmits a finding pointing at a file
+        // that no longer exists, which every surface then offers to open.
+        let previous = previous_with_h2();
+        let mut elsewhere = coordinate("cargo", "h2", "0.4.15");
+        elsewhere.manifest_path = PathBuf::from("/other/Cargo.lock");
+        let carried =
+            carry_forward_provider_findings(&previous, &["OSV.dev".to_string()], &[elsewhere]);
         assert!(carried.is_empty());
     }
 

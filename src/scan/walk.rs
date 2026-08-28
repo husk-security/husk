@@ -285,6 +285,12 @@ where
 /// single source of false-positive secrets. Their *coordinates* are still
 /// scanned in full, because discovery reads the lockfile at the project root,
 /// which enumerates every package the pruned tree materialises.
+///
+/// `.husk` is husk's own state: `husk fix` snapshots every file it edits under
+/// `.husk/backups/<ts>/files/`, so walking it rescans copies of files already
+/// scanned in place, once per fix run. The committed `.husk/policy.toml` is
+/// found by walking *up* from the scan roots ([`crate::policy`]), never by this
+/// walk, so pruning the directory costs nothing.
 fn keep_entry(entry: &DirEntry) -> bool {
     if !entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
         return true;
@@ -296,6 +302,7 @@ fn keep_entry(entry: &DirEntry) -> bool {
     !matches!(
         name.as_ref(),
         ".direnv"
+            | ".husk"
             | ".git"
             | ".hg"
             | ".svn"
@@ -379,6 +386,32 @@ mod tests {
             "only the non-agent lockfile is discovered, got {manifests:?}"
         );
         assert!(manifests[0].starts_with(dir.path().join("projects")));
+    }
+
+    #[test]
+    fn husk_fix_backups_are_pruned_from_the_walk() {
+        // `husk fix` snapshots each file it edits under `.husk/backups/<ts>/`.
+        // Walking those rescans the same file once per fix run, and every copy
+        // is a duplicate finding pointing at a path that rollback deletes.
+        let dir = tempfile::tempdir().expect("tempdir");
+        let lock = r#"{"name":"x","lockfileVersion":3,"packages":{"node_modules/lodash":{"version":"4.17.20"}}}"#;
+        fs::write(dir.path().join("package-lock.json"), lock).expect("write lockfile");
+
+        let backup = dir.path().join(".husk/backups/20260712T150304Z/files/app");
+        fs::create_dir_all(&backup).expect("mkdir backup");
+        fs::write(backup.join("package-lock.json"), lock).expect("write snapshot");
+
+        let packages = discover_packages(&[dir.path().to_path_buf()]).expect("discover packages");
+        let manifests: Vec<_> = packages
+            .iter()
+            .filter(|p| p.key() == "npm:lodash@4.17.20")
+            .map(|p| p.manifest_path.clone())
+            .collect();
+        assert_eq!(
+            manifests,
+            vec![dir.path().join("package-lock.json")],
+            "only the live lockfile is discovered, got {manifests:?}"
+        );
     }
 
     #[test]
