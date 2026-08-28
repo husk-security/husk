@@ -103,6 +103,19 @@ export function FeedbackDialog({
               placeholder="you@example.com"
               className="mt-1.5 w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg-subtle focus-ring"
             />
+            <p className="mt-3 text-xs leading-relaxed text-fg-muted">
+              Your message, and the email if you give one, leave this machine
+              and are stored by Husk so the team can read and reply. See the{" "}
+              <a
+                href="https://husk-security.dev/legal/privacy"
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-sm font-medium text-fg underline-offset-2 hover:underline focus-ring"
+              >
+                privacy notice
+              </a>
+              .
+            </p>
             {send.isError && (
               <p className="mt-3 text-xs text-danger" role="alert">
                 {send.error instanceof HttpError
