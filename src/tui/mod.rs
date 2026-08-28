@@ -27,6 +27,7 @@ mod consent;
 mod fix;
 mod guide;
 mod scan;
+mod source;
 #[cfg(test)]
 mod tests;
 mod theme;
@@ -178,6 +179,13 @@ fn handle_event(app: &mut TuiApp, event: Event) -> bool {
         if app.consume_fix_key(key.code) {
             return false;
         }
+        if app.source.is_open() {
+            // The pane is scrolled with the same j/k the list underneath uses,
+            // so it must answer first or the selection would move behind it.
+            if app.source.handle_key(key.code) {
+                return false;
+            }
+        }
         match key.code {
             KeyCode::Esc => return true,
             KeyCode::Tab => app.tab = app.tab.next(),
@@ -190,6 +198,7 @@ fn handle_event(app: &mut TuiApp, event: Event) -> bool {
             KeyCode::Char('f') => app.guide_cycle_filter(),
             KeyCode::Char('g') => app.guide_cycle_grouping(),
             KeyCode::Char('x') => app.guide_open_fix(),
+            KeyCode::Char('o') => app.open_source(),
             KeyCode::Char('u') => app.start_dep_fix(false),
             // Shift-U: the PEP 668 opt-in, mirroring the web "upgrade anyway"
             // button. Deliberately its own key, never a fallback for `u`:
@@ -257,6 +266,7 @@ fn draw(frame: &mut Frame<'_>, app: &TuiApp, web_url: Option<&str>) {
         Tab::Guide => guide::draw(frame, app, rows[2]),
         Tab::Account => account::draw(frame, &app.live.report, rows[2]),
     }
+    source::draw(frame, &app.source, rows[2]);
     if let Some(pane) = &app.consent {
         consent::draw(frame, rows[2], pane);
     }
@@ -322,13 +332,14 @@ fn draw_footer(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, web_url: Option<
         _ if app.consent.is_some() => {
             "y yes · n no · left/right choose · enter confirm · esc no · q quit"
         }
+        _ if app.source.is_open() => "j/k scroll · PgUp/PgDn page · esc back · q quit",
         Tab::Guide if app.guide.fix.is_open() => {
             "j/k move · space select · a all · enter apply · PgUp/PgDn scroll · esc back · q quit"
         }
         Tab::Guide => {
             "1-3/Tab switch · j/k move · h/l option · f filter · g group · x fix · q quit"
         }
-        Tab::Scan => "1-3/Tab switch · j/k move · u fix dep · q quit",
+        Tab::Scan => "1-3/Tab switch · j/k move · o open file · u fix dep · q quit",
         Tab::Account => "1-3/Tab switch · j/k move · q quit",
     };
     let footer = format!(
@@ -356,6 +367,8 @@ struct TuiApp {
     scan: scan::State,
     /// Guide tab: cached assessment + grouped view, selection, filter/grouping.
     guide: guide::State,
+    /// The read-only source pane, open over whichever tab opened it.
+    source: source::State,
     /// The one-time telemetry consent pane, open only between a scan
     /// finishing inside this session and the user's answer.
     consent: Option<consent::Pane>,
@@ -372,6 +385,7 @@ impl TuiApp {
             live,
             scan,
             guide: guide::State::default(),
+            source: source::State::default(),
             consent: None,
             telemetry: crate::cloud::telemetry::Telemetry::from_default_dir().ok(),
         }
@@ -451,6 +465,18 @@ impl TuiApp {
     fn guide_open_fix(&mut self) {
         if self.tab == Tab::Guide {
             self.guide.fix.open();
+        }
+    }
+
+    /// `o` on the Scan tab: show the selected finding's file, read-only.
+    /// Husk reads the file itself rather than launching an editor over a tree
+    /// it has just flagged.
+    fn open_source(&mut self) {
+        if self.tab != Tab::Scan {
+            return;
+        }
+        if let Some(finding) = self.scan.selected_finding(&self.live.report) {
+            self.source.open(finding);
         }
     }
 

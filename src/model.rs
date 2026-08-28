@@ -284,6 +284,21 @@ pub struct ExploitInfo {
 }
 
 impl Finding {
+    /// The file this finding is about, and the line inside it when known: the
+    /// finding's own location, or else the manifest its coordinate was read
+    /// from.
+    ///
+    /// The one definition of "which file does this sit in", shared by the TUI
+    /// source pane and the web `/api/source` allowlist, so the browser can
+    /// never ask for a file the pane would not have shown.
+    pub fn location(&self) -> Option<(&std::path::Path, Option<usize>)> {
+        if let Some(path) = &self.path {
+            return Some((path.as_path(), self.line));
+        }
+        let package = self.package.as_ref()?;
+        Some((package.manifest_path.as_path(), package.line))
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: impl Into<String>,

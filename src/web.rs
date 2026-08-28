@@ -153,6 +153,7 @@ async fn start_with_state(state: AppState, addr: SocketAddr, dev: bool) -> Resul
         .route("/api/machine/rescan", post(api_machine_rescan))
         .route("/api/history", get(api_history))
         .route("/api/dirs", get(api_dirs))
+        .route("/api/source", get(api_source))
         .route("/api/rescan", post(api_rescan))
         .route("/api/account", get(api_account))
         .route("/api/agents", get(api_agents))
@@ -1100,6 +1101,53 @@ async fn api_history() -> Json<Vec<crate::history::HistoryEntry>> {
 }
 
 #[derive(Deserialize)]
+struct SourceQuery {
+    /// The file to show. Must be one the current report points at.
+    path: String,
+    /// The line to centre the window on. Absent → the head of the file.
+    line: Option<usize>,
+}
+
+/// One file a finding sits in, tokenized for the source panel: the browser
+/// half of the TUI's source pane.
+///
+/// The path is checked against the current reports first. A localhost server
+/// that reads whatever path a page asks for is a file-disclosure hole with a
+/// URL, so the allowlist is exactly the set of files the UI already shows a
+/// location for, computed by the same [`Finding::location`] the TUI opens.
+async fn api_source(
+    State(state): State<AppState>,
+    axum::extract::Query(query): axum::extract::Query<SourceQuery>,
+) -> Result<Json<crate::highlight::Excerpt>, ApiError> {
+    let path = std::path::PathBuf::from(&query.path);
+    // Both reports, because the Scan view renders both: the machine-posture
+    // scan is where the home-directory secrets live, and those are the rows a
+    // reader most wants to see the line of.
+    let flagged = [&state.live, &state.machine].into_iter().any(|scan| {
+        scan.with_read(|live| {
+            // Resolved findings too: the Solved panel opens the same detail
+            // pane, and its file is one husk itself flagged a scan ago.
+            let resolved = live.report.delta.iter().flat_map(|d| d.resolved.iter());
+            live.report
+                .findings
+                .iter()
+                .chain(resolved)
+                .any(|finding| finding.location().is_some_and(|(at, _)| at == path))
+        })
+    });
+    if !flagged {
+        return Err(ApiError::bad_request("no finding sits in that file"));
+    }
+    crate::highlight::excerpt(
+        &path,
+        query.line.map(|line| line as u32),
+        crate::highlight::RADIUS,
+    )
+    .map(Json)
+    .map_err(|err| ApiError::bad_request(format!("{err:#}")))
+}
+
+#[derive(Deserialize)]
 struct DirsQuery {
     /// Directory to list. Absent → the user's home directory.
     path: Option<String>,
@@ -1378,6 +1426,21 @@ mod tests {
         .await
     }
 
+    /// [`serve`] with a machine-posture report alongside the project one.
+    async fn serve_with_machine(live: LiveScan, machine: LiveScan) -> WebHandle {
+        let state = AppState {
+            live: std::sync::Arc::new(std::sync::RwLock::new(live)),
+            machine: std::sync::Arc::new(std::sync::RwLock::new(machine)),
+            options: None,
+            telemetry: crate::cloud::telemetry::Telemetry::at(
+                std::env::temp_dir().join("husk-web-test-state"),
+            ),
+        };
+        start_with_state(state, "127.0.0.1:0".parse().unwrap(), false)
+            .await
+            .expect("start server")
+    }
+
     async fn test_server() -> WebHandle {
         serve(
             LiveScan::finished(crate::model::ScanReport::empty(vec![])),
@@ -1405,6 +1468,127 @@ mod tests {
         let mut live = LiveScan::finished(report);
         live.restart(vec![PathBuf::from("/proj")]);
         live
+    }
+
+    async fn get(addr: std::net::SocketAddr, path: &str) -> String {
+        raw_request(
+            addr,
+            &format!("GET {path} HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"),
+        )
+        .await
+    }
+
+    /// The source panel may read only what the report already points at.
+    /// Without this the localhost API is a file reader any page in the browser
+    /// can aim at the user's home directory.
+    #[tokio::test]
+    async fn the_source_api_serves_flagged_files_and_refuses_the_rest() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let flagged = dir.path().join("app.json");
+        std::fs::write(&flagged, "{\n  \"token\": \"redacted\"\n}\n").expect("write");
+        let secret = dir.path().join("id_rsa");
+        std::fs::write(&secret, "PRIVATE").expect("write");
+
+        let mut report = crate::model::ScanReport::empty(vec![dir.path().to_path_buf()]);
+        report.findings = vec![crate::model::Finding::new(
+            "secret-in-json",
+            "Secret in app.json",
+            crate::model::Severity::High,
+            crate::rule::Category::Secret,
+            "test",
+            Some(flagged.clone()),
+            Some(2),
+            "s",
+            None,
+            "r",
+        )];
+        // A resolved finding's file stays readable: the Solved panel opens the
+        // same detail pane, source view and all.
+        let fixed = dir.path().join("was-leaking.env");
+        std::fs::write(&fixed, "TOKEN=rotated\n").expect("write");
+        report.delta = Some(crate::model::ScanDelta {
+            previous_at: chrono::Utc::now(),
+            previous_score: 50,
+            score: 60,
+            new_count: 0,
+            unchanged_count: 1,
+            resolved_count: 1,
+            resolved: vec![crate::model::Finding::new(
+                "rotated-token",
+                "Token was exposed",
+                crate::model::Severity::High,
+                crate::rule::Category::Secret,
+                "test",
+                Some(fixed.clone()),
+                Some(1),
+                "s",
+                None,
+                "r",
+            )],
+            new: Vec::new(),
+        });
+        // The home-directory secrets sit in the machine report, not the project
+        // one, and they are the rows a reader most wants the line of.
+        let machine_flagged = dir.path().join(".npmrc");
+        std::fs::write(&machine_flagged, "//registry:_authToken=redacted\n").expect("write");
+        let mut machine = crate::model::ScanReport::empty(vec![dir.path().to_path_buf()]);
+        machine.findings = vec![crate::model::Finding::new(
+            "npm-token",
+            "npm publish token exposed",
+            crate::model::Severity::Critical,
+            crate::rule::Category::Secret,
+            "test",
+            Some(machine_flagged.clone()),
+            Some(1),
+            "s",
+            None,
+            "r",
+        )];
+        let server =
+            serve_with_machine(LiveScan::finished(report), LiveScan::finished(machine)).await;
+
+        let shown = get(
+            server.addr,
+            &format!("/api/source?path={}&line=2", flagged.display()),
+        )
+        .await;
+        assert!(shown.starts_with("HTTP/1.1 200"), "{shown}");
+        assert!(shown.contains("\"focus\":2"), "{shown}");
+        assert!(
+            shown.contains("\"key\""),
+            "the key token must survive: {shown}"
+        );
+
+        let from_machine = get(
+            server.addr,
+            &format!("/api/source?path={}&line=1", machine_flagged.display()),
+        )
+        .await;
+        assert!(
+            from_machine.starts_with("HTTP/1.1 200"),
+            "a machine-scan finding's file must be readable: {from_machine}"
+        );
+
+        let solved = get(
+            server.addr,
+            &format!("/api/source?path={}&line=1", fixed.display()),
+        )
+        .await;
+        assert!(
+            solved.starts_with("HTTP/1.1 200"),
+            "a resolved finding's file must stay readable: {solved}"
+        );
+
+        let refused = get(
+            server.addr,
+            &format!("/api/source?path={}", secret.display()),
+        )
+        .await;
+        assert!(refused.starts_with("HTTP/1.1 400"), "{refused}");
+        assert!(
+            refused.contains("no finding sits in that file"),
+            "{refused}"
+        );
     }
 
     async fn post(addr: std::net::SocketAddr, path: &str, body: &str) -> String {

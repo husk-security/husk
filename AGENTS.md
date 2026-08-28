@@ -171,6 +171,18 @@ footer. Navigation is `1`-`3`, `Tab`/`Shift-Tab`, `j`/`k`, and `q`/`Ctrl-C`.
 `q` and `Ctrl-C` must restore the terminal immediately. After exit, durable
 scrollback should contain only a compact colored session summary.
 
+The Scan tab's `o` opens the source pane over the body: the file the selected
+finding sits in, read-only, syntax highlighted, scrolled to the flagged line
+(`j`/`k`, `PgUp`/`PgDn`, `esc` to go back). The web half is the `Show file`
+action on each affected row of the finding detail, which opens the same file
+over the page, served by `/api/source`. An advisory row carries a link to its
+CVE alongside it. Husk never hands the file to an
+editor: an editor loads the flagged tree's own plugins and language servers, so
+reading it in-app is what keeps the surface read-only. Both surfaces render the
+token classes `src/highlight.rs` produces; neither colours a line its own way,
+and the server serves only files the current report points at
+(`Finding::location`).
+
 The Guide tab's `x` opens the fix pane over the body, the terminal half of the
 web's "Fix with Husk" card: proposals grouped by the directory the fix runs in,
 `space`/`a` selection, `enter` to apply the selection in one run, `PgUp`/`PgDn`

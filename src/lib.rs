@@ -64,6 +64,7 @@ mod export;
 mod gitcmd;
 pub mod guide;
 mod hash;
+pub mod highlight;
 pub mod intel;
 mod ledger;
 mod paths;

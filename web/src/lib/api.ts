@@ -188,6 +188,8 @@ export interface Finding {
     name: string;
     version: string;
     manifest_path?: string;
+    /** Approximate line of the name in `manifest_path`, when locatable. */
+    line?: number;
   };
   /** The project this finding belongs to (joins to `report.projects`). */
   project_id?: string;
@@ -645,6 +647,51 @@ export const useAgents = () =>
   useQuery({
     queryKey: ["agents"],
     queryFn: () => getJSON<Record<string, boolean>>("/api/agents"),
+  });
+
+// ---- source excerpts (the file a finding sits in) -------------------------
+
+/** Token classes the Rust lexer emits; the TUI source pane renders them. */
+export type TokenClass =
+  | "plain"
+  | "key"
+  | "str"
+  | "num"
+  | "comment"
+  | "keyword"
+  | "punct";
+export interface SourceToken {
+  class: TokenClass;
+  text: string;
+}
+export interface SourceLine {
+  /** 1-based line number in the file, not in the excerpt. */
+  number: number;
+  tokens: SourceToken[];
+}
+export interface Excerpt {
+  path: string;
+  /** The finding's line, marked in the view. */
+  focus: number | null;
+  total_lines: number;
+  lines: SourceLine[];
+}
+
+/** A window of one flagged file, tokenized server-side so the terminal and the
+ *  browser colour it identically. The server serves only files the current
+ *  report points at, so a path this hook did not read out of a finding comes
+ *  back 400. */
+export const useSource = (path?: string, line?: number | null) =>
+  useQuery({
+    queryKey: ["source", path ?? "", line ?? 0],
+    queryFn: () =>
+      getJSON<Excerpt>(
+        `/api/source?path=${encodeURIComponent(path ?? "")}${line ? `&line=${line}` : ""}`,
+      ),
+    enabled: !!path,
+    // A file on disk is not scan state: refetching it on every window focus
+    // would flicker the panel for a file that has not changed.
+    staleTime: 30_000,
   });
 
 // ---- policy status (project policy + personal trust ledger) ----------------

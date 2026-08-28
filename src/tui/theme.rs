@@ -10,6 +10,7 @@
 
 use ratatui::style::{Color, Modifier, Style};
 
+use crate::highlight::Class;
 use crate::model::{Activity, Severity};
 
 // ── structural neutrals ────────────────────────────────────────────────────
@@ -91,6 +92,28 @@ pub(super) fn activity(activity: Activity) -> Color {
     }
 }
 
+// ── source tokens ──────────────────────────────────────────────────────────
+/// One syntax token's style, for the source pane.
+///
+/// Two hues, neither of them a severity colour: the brand rule keeps hue for
+/// severity and the findings list behind the pane is graded by it, so the name
+/// side (`IDENT`) and the value side (`OK`) are the only ones a reader cannot
+/// mistake for a rating. Grey, weight, and italic carry the rest. The web
+/// `SourceView` maps the same classes onto the same split.
+pub(super) fn token(class: Class) -> Style {
+    match class {
+        Class::Comment => Style::default()
+            .fg(FG_SUBTLE)
+            .add_modifier(Modifier::ITALIC),
+        Class::Key => Style::default().fg(IDENT).add_modifier(Modifier::BOLD),
+        Class::Keyword => Style::default().fg(FG).add_modifier(Modifier::BOLD),
+        Class::Str => Style::default().fg(OK),
+        Class::Num => Style::default().fg(FG),
+        Class::Punct => Style::default().fg(FG_SUBTLE),
+        Class::Plain => Style::default().fg(FG_MUTED),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     /// The palette rule is machine-checked: raw `Color::` literals may appear
@@ -105,6 +128,7 @@ mod tests {
             ("fix.rs", include_str!("fix.rs")),
             ("guide.rs", include_str!("guide.rs")),
             ("scan.rs", include_str!("scan.rs")),
+            ("source.rs", include_str!("source.rs")),
             ("tests.rs", include_str!("tests.rs")),
         ];
         for (name, source) in sources {

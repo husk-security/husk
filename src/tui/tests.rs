@@ -531,3 +531,21 @@ fn consent_trigger_is_the_clean_scan_completion_transition() {
     running.running = true;
     assert!(!consent::scan_just_completed(true, &running));
 }
+
+/// `o` puts the source pane over the Scan body with its own footer. The fixture
+/// paths do not exist on the test machine, which is the case that must still
+/// render something: an unreadable file is answered with the reason, not with a
+/// pane that looks broken.
+#[test]
+fn the_source_pane_covers_the_scan_body_and_says_why_it_cannot_read() {
+    let out = render_with(Tab::Scan, 100, 30, |app| app.open_source());
+    assert_contains(
+        &out,
+        &[
+            "package-lock.json",
+            "cannot read",
+            "esc to go back",
+            "esc back",
+        ],
+    );
+}

@@ -27,6 +27,7 @@ import {
   useState,
 } from "react";
 import { AI_AGENT_USAGE_DOCS_URL } from "@/features/agent-setup/AgentSetup";
+import { advisoryLinks } from "@/features/guide/proposals";
 import {
   type Activity,
   type Project as ApiProject,
@@ -60,8 +61,8 @@ import {
 } from "@/lib/exportReport";
 import { PathLabel, Places, shortPath } from "@/lib/path";
 import { useResizableDetail } from "@/lib/useResizableDetail";
-
 import { DirPicker } from "./DirPicker";
+import { locationOf, SourceView } from "./SourceView";
 import { SEV_TEXT, SeverityBadge } from "./severity";
 
 const ORDER: Severity[] = ["critical", "high", "medium", "low", "info"];
@@ -74,6 +75,21 @@ const RANK: Record<Severity, number> = {
 };
 const loc = (f: Finding) =>
   f.path ? `${shortPath(f.path)}${f.line ? `:${f.line}` : ""}` : null;
+
+/** The file the source dialog opens for one affected row, and every line
+ *  flagged inside it. A coordinate row can span several lockfiles; the first is
+ *  the one that opens, and the dialog prints the path it read. */
+function sourceTarget(items: Finding[]) {
+  const places = items
+    .map(locationOf)
+    .filter((p): p is { path: string; line?: number } => !!p);
+  const first = places[0];
+  if (!first) return null;
+  const lines = places
+    .filter((p) => p.path === first.path && p.line)
+    .map((p) => p.line as number);
+  return { path: first.path, lines: [...new Set(lines)].sort((a, b) => a - b) };
+}
 
 /** The distinct files a set of findings sits in. */
 const manifests = (items: Finding[]) => [
@@ -2005,6 +2021,8 @@ export function GroupDetail({
   }, [g.items, rules.data]);
   const allMuted = g.items.every((f) => isMuted(f.id));
   const groupIds = g.items.map((f) => f.id);
+  // One dialog for the whole list, not one per row.
+  const [showing, setShowing] = useState<ReturnType<typeof sourceTarget>>(null);
 
   return (
     <div className="min-w-0">
@@ -2101,6 +2119,10 @@ export function GroupDetail({
               // Only a coordinate row drops its locations from the shared
               // sentence; a location row already is its location.
               const where = isCoord ? manifests(entry.items) : [];
+              const at = sourceTarget(entry.items);
+              // An advisory row is about a vulnerability as well as a file, so
+              // it also links out to the advisory page describing it.
+              const advisories = isCoord ? advisoryLinks(entry.items) : [];
               return (
                 <li key={entry.label} className="flex items-start gap-2">
                   <span className="min-w-0 flex-1">
@@ -2118,6 +2140,31 @@ export function GroupDetail({
                       <Places at={where.map((path) => ({ path }))} />
                     )}
                   </span>
+                  {/* Reading the file in-app is the whole point: handing it to
+                      an editor would load the flagged tree's own plugins. */}
+                  {at && (
+                    <button
+                      type="button"
+                      data-tour="show-file"
+                      onClick={() => setShowing(at)}
+                      className="shrink-0 text-[10px] text-fg-subtle underline decoration-border-strong underline-offset-2 hover:text-fg"
+                      title={`Show ${at.path}`}
+                    >
+                      Show file
+                    </button>
+                  )}
+                  {advisories.map((advisory) => (
+                    <a
+                      key={advisory.id}
+                      href={advisory.url}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="shrink-0 font-mono text-[10px] text-fg-subtle underline decoration-border-strong underline-offset-2 hover:text-fg"
+                      title={advisory.url}
+                    >
+                      {advisory.id}
+                    </a>
+                  ))}
                   {!solved && (
                     <button
                       type="button"
@@ -2128,7 +2175,7 @@ export function GroupDetail({
                         muted ? "Restore this entry" : "Ignore just this entry"
                       }
                     >
-                      {muted ? "restore" : "ignore"}
+                      {muted ? "Restore" : "Ignore"}
                     </button>
                   )}
                 </li>
@@ -2143,6 +2190,13 @@ export function GroupDetail({
           )}
         </>
       )}
+
+      <SourceView
+        open={!!showing}
+        onOpenChange={(o) => !o && setShowing(null)}
+        path={showing?.path ?? ""}
+        lines={showing?.lines ?? []}
+      />
     </div>
   );
 }
