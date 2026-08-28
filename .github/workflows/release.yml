@@ -12,12 +12,11 @@
 # commit, and workflow in an in-toto statement. The README's "Verifying a
 # release" section documents how a downloader checks both.
 #
-# Cutting a release:
-#   1. Land everything on `main`. Bump `version` in Cargo.toml, flake.nix, and
-#      server.json (both `version` and `packages[].version`) in lockstep with
-#      the tag, and keep Cargo.lock current; the build uses `--locked`. Rewrite
-#      RELEASE_NOTES.md, which is published verbatim as the release body; the
-#      validation step refuses a tag the notes never mention.
+# Cutting a release: see RELEASING.md. In short:
+#   1. `cargo release X.Y.Z --execute --no-confirm --no-publish` on a branch,
+#      then merge it. That moves all six version files together and promotes
+#      the changelog's `## Unreleased` section; the validation step below
+#      refuses a tag whose files disagree or whose section is missing.
 #   2. `git tag -a vX.Y.Z -m "husk X.Y.Z" && git push origin vX.Y.Z`. Annotated,
 #      not lightweight: a lightweight tag has no tagger, so GitHub credits it to
 #      whoever authored the commit main happened to point at. The tag must
@@ -220,11 +219,11 @@ jobs:
             exit 1
           fi
 
-          # RELEASE_NOTES.md is published verbatim as the release body, so
-          # stale notes would ship silently. Requiring the version to appear in
-          # them makes forgetting to rewrite them a failed release instead.
-          if ! grep -qF "${expected}" RELEASE_NOTES.md; then
-            echo "::error::RELEASE_NOTES.md never mentions ${expected}; rewrite it for this release"
+          # The release body is this version's CHANGELOG section, so a missing
+          # section would publish an empty release. `cargo release` writes it
+          # via git-cliff during the bump; this catches a hand-made tag.
+          if ! grep -qE "^## ${expected} " CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no '## ${expected}' section"
             exit 1
           fi
 
@@ -318,6 +317,26 @@ jobs:
           echo "Signed artifact set:"
           ls -la
 
+      # The release body is this version's CHANGELOG section and nothing else.
+      # Install instructions and what husk is belong in the README; repeated on
+      # every release they become copies that go stale on their own.
+      - name: Extract the release body from the changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="## ${version} " '
+            $0 ~ "^" v { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md | sed -e '/./,$!d' > dist/RELEASE_BODY.md
+          if [ ! -s dist/RELEASE_BODY.md ]; then
+            echo "::error::no changelog entries under '## ${version}'"
+            exit 1
+          fi
+          echo "Release body:"
+          cat dist/RELEASE_BODY.md
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
@@ -328,7 +347,7 @@ jobs:
             dist/SHA256SUMS
             dist/*.sigstore.json
           fail_on_unmatched_files: true
-          body_path: RELEASE_NOTES.md
+          body_path: dist/RELEASE_BODY.md
 
   npm-package:
     name: build npm packages
