@@ -6,6 +6,8 @@ to upgrade.
 
 ## Unreleased
 
+- Say where feedback goes, and link the privacy notice, before you send it
+
 ## 0.1.1 - 2026-08-27
 
 - Sign releases with cosign v3 Sigstore bundles

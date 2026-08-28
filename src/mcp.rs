@@ -381,7 +381,7 @@ pub fn tool_definitions() -> Value {
         },
         {
             "name": "husk_feedback",
-            "description": "Send free-text product feedback about husk to the husk developers. Use when the user asks to send feedback, report an annoyance, or praise/complain about husk itself. Sends only the message, an optional reply email, and the husk version; nothing else leaves the machine. Ask the user before sending on their behalf.",
+            "description": "Send free-text product feedback about husk to the husk developers. Use when the user asks to send feedback, report an annoyance, or praise/complain about husk itself. Sends only the message, an optional reply email, and the husk version; nothing else leaves the machine. What is sent is stored by Husk so the team can read and reply (https://husk-security.dev/legal/privacy). Ask the user before sending on their behalf, and tell them the email is optional.",
             "inputSchema": {
                 "type": "object",
                 "properties": {

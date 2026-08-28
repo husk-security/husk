@@ -244,7 +244,8 @@ husk telemetry off               # also deletes all local telemetry state"
         long_about = "Send free-text feedback to the husk developers. Reads the message from \
 the argument, or from stdin when no argument is given. Sends only the message, an optional \
 reply email (--contact), and the husk version; nothing else leaves the machine, and no \
-account is needed.",
+account is needed. What is sent is stored by Husk so the team can read and reply; see \
+https://husk-security.dev/legal/privacy.",
         after_long_help = "Examples:\n  \
 husk feedback \"The TUI is great, but scans feel slow on my monorepo\"\n  \
 husk feedback --contact dev@example.com \"Found a rough edge in husk fix\"\n  \

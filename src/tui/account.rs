@@ -47,6 +47,10 @@ fn draw_connection(frame: &mut Frame<'_>, area: Rect) {
             "husk feedback \"Your message\"",
             theme::accent(),
         )),
+        Line::from(Span::styled(
+            "Stored by Husk so the team can read and reply: husk-security.dev/legal/privacy",
+            theme::muted(),
+        )),
         Line::from(""),
         Line::from(Span::styled(
             "Husk works fully without an account. Existing sessions remain usable.",
