@@ -377,7 +377,10 @@ export function Guide({
             </div>
           ))}
         </div>
-        <div className="mt-4 grid gap-1.5 @2xl:grid-cols-2">
+        <div
+          data-tour="guide-list"
+          className="mt-4 grid gap-1.5 @2xl:grid-cols-2"
+        >
           {summary.map((c) => (
             <button
               key={c.title}

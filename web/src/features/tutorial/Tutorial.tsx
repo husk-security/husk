@@ -2,8 +2,10 @@ import { Button, cn } from "@huskdev/ui";
 import {
   BookOpen,
   Bot,
+  FileCode,
   FolderSearch,
   GraduationCap,
+  MessageSquare,
   Radar,
   ShieldCheck,
   Wrench,
@@ -28,6 +30,8 @@ type Step = {
   tab?: TourTab;
   /** `data-tour` id of the element to spotlight; centered card when absent. */
   target?: string;
+  /** `data-tour` id of a collapsed control to open, so `target` is on screen. */
+  expand?: string;
 };
 
 const STEPS: Step[] = [
@@ -70,20 +74,34 @@ const STEPS: Step[] = [
   },
   {
     icon: <Wrench size={16} />,
-    title: "A finding is evidence, not a to-do",
+    title: "The detailed view",
     tab: "projects",
     target: "scan-detail",
     body: (
       <>
         The detail pane shows what a finding means and where it came from. Scan
         never changes anything on this machine. When you want to act on a
-        finding, "Fix this in the Guide" takes you to the task that covers it.
+        finding, "Fix this in the Guide" takes you to the task that covers it,
+        and "Fix with AI" hands it to your coding agent instead.
+      </>
+    ),
+  },
+  {
+    icon: <FileCode size={16} />,
+    title: "Read the flagged file",
+    tab: "projects",
+    target: "show-file",
+    body: (
+      <>
+        Every affected file has a "Show file" action. It opens the file
+        read-only, syntax highlighted, scrolled to the flagged line, so you can
+        judge a finding without opening the flagged tree in your editor.
       </>
     ),
   },
   {
     icon: <BookOpen size={16} />,
-    title: "The Guide is where you act",
+    title: "The Guide",
     tab: "guide",
     target: "guide-list",
     body: (
@@ -110,15 +128,26 @@ const STEPS: Step[] = [
     ),
   },
   {
+    icon: <MessageSquare size={16} />,
+    title: "Tell us what is off",
+    target: "feedback-item",
+    expand: "help-button",
+    body: (
+      <>
+        Something confusing, broken, or great? Send feedback from the Help menu,
+        or run <code className="font-mono">husk feedback</code> in a terminal. A
+        wrong finding is worth reporting: false positives are bugs.
+      </>
+    ),
+  },
+  {
     icon: <GraduationCap size={16} />,
     title: "Rerun this tour any time",
     target: "tour-button",
     body: (
       <>
         That is the whole loop: scan to see what is here, then work the Guide.
-        This button replays the tour whenever you want a refresher. Something
-        confusing, broken, or great? Send feedback from the Help menu below, or
-        run <code className="font-mono">husk feedback</code> in a terminal.
+        This button replays the tour whenever you want a refresher.
       </>
     ),
   },
@@ -132,6 +161,9 @@ type Anchor = {
   /** Below/above the target when there is room; tall targets (full-height
    *  panes) get the card overlaid inside their top edge instead. */
   place: "below" | "above" | "inside";
+  /** Glide from the previous position (the move onto a new step) or land
+   *  instantly (a correction while the target's own content settles). */
+  animate: boolean;
 };
 
 /**
@@ -166,9 +198,23 @@ export function Tutorial({
   useEffect(() => {
     if (!open) return;
     if (s.tab) onNavigate(s.tab);
+    // A target inside a closed menu has no box to spotlight, so open it first.
+    const opener = s.expand
+      ? document.querySelector<HTMLElement>(`[data-tour="${s.expand}"]`)
+      : null;
+    if (opener?.getAttribute("aria-expanded") === "false") opener.click();
     let raf = 0;
     let tries = 0;
-    let last = "";
+    let placed = "";
+    const commit = (rect: DOMRect, animate: boolean) => {
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setAnchor({
+        rect,
+        place:
+          spaceBelow >= 260 ? "below" : rect.top >= 260 ? "above" : "inside",
+        animate,
+      });
+    };
     const measure = () => {
       const el = s.target
         ? document.querySelector(`[data-tour="${s.target}"]`)
@@ -177,18 +223,15 @@ export function Tutorial({
         el.scrollIntoView({ block: "nearest" });
         const rect = el.getBoundingClientRect();
         const key = `${rect.top}|${rect.left}|${rect.width}|${rect.height}`;
-        if (key !== last) {
-          last = key;
-          const spaceBelow = window.innerHeight - rect.bottom;
-          setAnchor({
-            rect,
-            place:
-              spaceBelow >= 260
-                ? "below"
-                : rect.top >= 260
-                  ? "above"
-                  : "inside",
-          });
+        // Glide the moment the target exists, so a step never stalls waiting
+        // for its pane to finish settling. Everything the target does after
+        // that (a list filling in, a pane finishing its layout) is followed
+        // without a transition: re-aiming a 300ms glide mid-flight is the
+        // drift, not the glide itself.
+        if (key !== placed) {
+          const first = placed === "";
+          placed = key;
+          commit(rect, first);
         }
       } else if (!s.target) {
         setAnchor(null);
@@ -219,8 +262,11 @@ export function Tutorial({
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", remeasure);
       window.removeEventListener("keydown", onKey);
+      // Leave the menu as the step found it (it closes itself on an outside
+      // click, so only close what is still open).
+      if (opener?.getAttribute("aria-expanded") === "true") opener.click();
     };
-  }, [open, step, s.tab, s.target, onNavigate]);
+  }, [open, step, s.tab, s.target, s.expand, onNavigate]);
 
   if (!open) return null;
 
@@ -247,7 +293,10 @@ export function Tutorial({
       <div className={cn("absolute inset-0", !r && "bg-black/60")} />
       {r && (
         <div
-          className="absolute rounded-lg ring-2 ring-accent transition-all duration-300"
+          className={cn(
+            "absolute rounded-lg ring-2 ring-accent",
+            anchor?.animate && "transition-all duration-300",
+          )}
           style={{
             left: r.left - 6,
             top: r.top - 6,
@@ -259,7 +308,10 @@ export function Tutorial({
       )}
 
       <div
-        className="absolute rounded-xl border border-border-strong bg-bg p-4 shadow-2xl transition-all duration-300"
+        className={cn(
+          "absolute rounded-xl border border-border-strong bg-bg p-4 shadow-2xl",
+          anchor?.animate && "transition-all duration-300",
+        )}
         style={
           r
             ? {

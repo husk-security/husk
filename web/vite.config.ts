@@ -19,7 +19,7 @@ export default defineConfig({
     port: 5181,
     strictPort: true,
     proxy: {
-      "/api": "http://127.0.0.1:6789",
+      "/api": `http://127.0.0.1:${process.env.HUSK_PORT ?? 6789}`,
     },
   },
 });

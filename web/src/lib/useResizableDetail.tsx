@@ -11,10 +11,12 @@ import { useIsDesktop } from "./useIsDesktop";
 
 /**
  * A draggable list|detail split shared by the Scan and Guide views so they
- * behave identically. The detail pane (on the right) carries an explicit pixel
- * width the user can drag; both panes keep a minimum so neither collapses.
- * Desktop only; below `lg` the panes stack and the handle is hidden. The width
- * is session-only (resets on reload) by design.
+ * behave identically. Opens at an even half and stays there until the reader
+ * drags it: the detail pane's own content decides nothing about its width, so
+ * one long finding cannot swallow the list. The detail pane (on the right)
+ * carries an explicit pixel width the user can drag; both panes keep a minimum
+ * so neither collapses. Desktop only; below `lg` the panes stack and the handle
+ * is hidden. The width is session-only (resets on reload) by design.
  *
  * Usage:
  *   const { containerRef, dragging, detailStyle, handle } = useResizableDetail();
@@ -27,7 +29,7 @@ import { useIsDesktop } from "./useIsDesktop";
 export function useResizableDetail({
   minList = 360,
   minDetail = 380,
-  defaultFraction = 0.4,
+  defaultFraction = 0.5,
 }: {
   minList?: number;
   minDetail?: number;
@@ -144,10 +146,12 @@ export function useResizableDetail({
     containerRef,
     isDesktop,
     dragging,
-    detailStyle:
-      isDesktop && detailWidth != null
-        ? { width: detailWidth, flexShrink: 0 }
-        : undefined,
+    // An even half until measured, so the pane always has a width of its own:
+    // without one it is sized by its content, and a finding with a long path in
+    // it would take the list's room the moment it was selected.
+    detailStyle: isDesktop
+      ? { width: detailWidth ?? "50%", flexShrink: 0 }
+      : undefined,
     handle,
   };
 }

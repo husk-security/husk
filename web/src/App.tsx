@@ -133,7 +133,6 @@ export default function App() {
     setTab("guide");
   };
 
-  const liveScan = useLive();
   const machineScan = useMachine();
 
   // First-run product tour: auto-opens once, rerunnable from the TopBar.
@@ -142,19 +141,11 @@ export default function App() {
     setTab("scan");
     setTutorialOpen(true);
   };
-  // Every tour step spotlights a structural element, so the walkthrough reads
-  // correctly over a real scan. Sample data stands in only when both slots
-  // have LOADED and are truly empty: invented findings must never cover real
-  // ones, and until the data arrives the Scan view shows its loading state,
-  // not a stand-in.
-  const scanDemo =
-    tutorialOpen &&
-    liveScan.data &&
-    machineScan.data &&
-    !liveScan.data.report?.findings?.length &&
-    !machineScan.data.report?.findings?.length
-      ? DEMO_LIVE
-      : undefined;
+  // The tour always runs over the same sample project, so every step it
+  // describes (a finding, its detail, the Show file action) is on screen
+  // whatever this machine's own scan holds. It is labeled "sample data" and
+  // disappears with the tour.
+  const scanDemo = tutorialOpen ? DEMO_LIVE : undefined;
   const machineProjects =
     (scanDemo ?? machineScan.data)?.report?.projects ?? [];
 
@@ -435,6 +426,7 @@ function HelpMenu({ collapsed }: { collapsed: boolean }) {
     >
       <button
         type="button"
+        data-tour="help-button"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={collapsed ? "Help" : undefined}
@@ -469,6 +461,7 @@ function HelpMenu({ collapsed }: { collapsed: boolean }) {
               setOpen(false);
               setFeedbackOpen(true);
             }}
+            data-tour="feedback-item"
             className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-[13px] text-fg-muted transition-colors hover:bg-surface hover:text-fg focus-ring"
           >
             <span className="shrink-0 text-fg-subtle">
