@@ -521,10 +521,27 @@ export const useRescan = () => {
   });
 };
 
+/** Ask the running scan to stop. Cooperative: the server keeps whatever the
+ *  scan already published, so the list on screen survives. */
+export const useStopScan = (machine = false) => {
+  const qc = useQueryClient();
+  const key = machine ? "machine" : "live";
+  return useMutation({
+    mutationFn: () =>
+      postJSON<LiveScan>(machine ? "/api/machine/stop" : "/api/stop", {}),
+    onSuccess: (live) => {
+      qc.setQueryData([key], live);
+      qc.invalidateQueries({ queryKey: [key] });
+    },
+  });
+};
+
 export interface DirsView {
   path: string;
   parent: string | null;
   dirs: { name: string; path: string }[];
+  /** Whether this machine can open a system folder dialog at all. */
+  native: boolean;
 }
 
 /** Browse the local filesystem one level at a time for the directory picker.
@@ -536,6 +553,13 @@ export const useDirs = (path: string | null) =>
       getJSON<DirsView>(
         path ? `/api/dirs?path=${encodeURIComponent(path)}` : "/api/dirs",
       ),
+  });
+
+/** Open the machine's own folder dialog (macOS, Linux, or Windows reached
+ *  through WSL interop) and resolve with the chosen path, or null on cancel. */
+export const usePickFolder = () =>
+  useMutation({
+    mutationFn: () => postJSON<{ path: string | null }>("/api/pick-folder", {}),
   });
 
 export const useGuide = (reportKey?: string) =>

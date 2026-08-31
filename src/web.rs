@@ -151,10 +151,13 @@ async fn start_with_state(state: AppState, addr: SocketAddr, dev: bool) -> Resul
         .route("/api/projects", get(api_projects))
         .route("/api/projects/track", post(api_projects_track))
         .route("/api/machine/rescan", post(api_machine_rescan))
+        .route("/api/machine/stop", post(api_machine_stop))
         .route("/api/history", get(api_history))
         .route("/api/dirs", get(api_dirs))
+        .route("/api/pick-folder", post(api_pick_folder))
         .route("/api/source", get(api_source))
         .route("/api/rescan", post(api_rescan))
+        .route("/api/stop", post(api_stop))
         .route("/api/account", get(api_account))
         .route("/api/agents", get(api_agents))
         .route("/api/feedback", post(api_feedback))
@@ -1064,6 +1067,24 @@ async fn api_machine_rescan(State(state): State<AppState>) -> Json<LiveScan> {
     Json(snapshot)
 }
 
+/// Ask the running scan to stop. Cooperative: the scan drops its half-built
+/// report and leaves the findings already on screen in place, so the reply can
+/// still be reporting `running` for the moment it takes to notice.
+async fn api_stop(State(state): State<AppState>) -> Json<LiveScan> {
+    Json(state.live.with_write(|live| {
+        live.request_stop();
+        live.visible()
+    }))
+}
+
+/// The machine slot's half of [`api_stop`].
+async fn api_machine_stop(State(state): State<AppState>) -> Json<LiveScan> {
+    Json(state.machine.with_write(|live| {
+        live.request_stop();
+        live.visible()
+    }))
+}
+
 /// Cap on history rows returned per roots group: the trend charts never need
 /// more than a year of daily scans, and the file itself is unbounded.
 const HISTORY_API_CAP: usize = 365;
@@ -1167,6 +1188,9 @@ struct DirsView {
     parent: Option<String>,
     /// Immediate subdirectories, name-sorted.
     dirs: Vec<DirEntry>,
+    /// Whether this machine can open a system folder dialog, so the picker
+    /// only offers that route when it leads somewhere.
+    native: bool,
 }
 
 /// List the immediate subdirectories of `path` so the web UI can browse the
@@ -1200,11 +1224,199 @@ fn list_dirs(start: Option<String>) -> DirsView {
         parent: path.parent().map(|p| p.to_string_lossy().into_owned()),
         path: path.to_string_lossy().into_owned(),
         dirs,
+        native: native_picker().is_some(),
     }
 }
 
 async fn api_dirs(axum::extract::Query(q): axum::extract::Query<DirsQuery>) -> Json<DirsView> {
     Json(list_dirs(q.path))
+}
+
+/// A system folder dialog this machine can open.
+#[derive(Clone, Copy)]
+enum NativePicker {
+    Osascript,
+    Zenity,
+    Kdialog,
+    /// The Windows dialog, reached over WSL interop when husk runs inside WSL.
+    Windows(&'static str),
+}
+
+/// Which dialog to open, probed once: the answer cannot change while the server
+/// runs. A Linux-side dialog is preferred over the Windows one because under
+/// WSL it returns a path this side can already open.
+fn native_picker() -> Option<NativePicker> {
+    static PICKER: std::sync::OnceLock<Option<NativePicker>> = std::sync::OnceLock::new();
+    *PICKER.get_or_init(|| {
+        if cfg!(target_os = "macos") {
+            return Some(NativePicker::Osascript);
+        }
+        if on_path("zenity") {
+            return Some(NativePicker::Zenity);
+        }
+        if on_path("kdialog") {
+            return Some(NativePicker::Kdialog);
+        }
+        powershell().map(NativePicker::Windows)
+    })
+}
+
+fn on_path(binary: &str) -> bool {
+    std::env::var_os("PATH")
+        .is_some_and(|path| std::env::split_paths(&path).any(|dir| dir.join(binary).is_file()))
+}
+
+/// PowerShell as this machine sees it: on `PATH` on Windows, and at its fixed
+/// System32 location from inside WSL, whose `PATH` often carries no Windows
+/// entries even with interop enabled.
+fn powershell() -> Option<&'static str> {
+    const INTEROP: &str = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe";
+    if on_path("powershell.exe") {
+        Some("powershell.exe")
+    } else if std::path::Path::new(INTEROP).is_file() {
+        Some(INTEROP)
+    } else {
+        None
+    }
+}
+
+/// Shell.Application's folder browser: on every Windows since XP and, unlike
+/// WinForms, it needs no STA apartment inside `-Command`. Prints nothing when
+/// the user cancels.
+const WINDOWS_PICK: &str = "$f=(New-Object -ComObject Shell.Application)\
+.BrowseForFolder(0,'Pick a folder to scan',0); if ($f) { $f.Self.Path }";
+
+/// Open the system dialog and block until the user answers, `None` if they
+/// cancel. No caller-supplied value reaches the command line, and no shell is
+/// involved, so the picker takes no untrusted input at all.
+fn pick_native(picker: NativePicker) -> Result<Option<String>, ApiError> {
+    let mut command = match picker {
+        NativePicker::Osascript => {
+            let mut c = std::process::Command::new("osascript");
+            c.args([
+                "-e",
+                "POSIX path of (choose folder with prompt \"Pick a folder to scan\")",
+            ]);
+            c
+        }
+        NativePicker::Zenity => {
+            let mut c = std::process::Command::new("zenity");
+            c.args([
+                "--file-selection",
+                "--directory",
+                "--title=Pick a folder to scan",
+            ]);
+            c
+        }
+        NativePicker::Kdialog => {
+            let mut c = std::process::Command::new("kdialog");
+            c.arg("--getexistingdirectory")
+                .arg(dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/")));
+            c
+        }
+        NativePicker::Windows(exe) => {
+            let mut c = std::process::Command::new(exe);
+            c.args(["-NoProfile", "-Command", WINDOWS_PICK]);
+            c
+        }
+    };
+    let output = command.output().map_err(|err| {
+        ApiError::internal(format!("could not open the system folder picker: {err}"))
+    })?;
+    // Every one of these dialogs prints the path and nothing else, and prints
+    // nothing at all on cancel (which is also a non-zero exit for most of them).
+    let picked = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if picked.is_empty() {
+        return Ok(None);
+    }
+    let picked = match picker {
+        NativePicker::Windows(_) if !cfg!(windows) => from_windows_path(&picked)?,
+        _ => picked,
+    };
+    // `choose folder` returns a trailing separator; scan roots carry none.
+    let trimmed = picked.trim_end_matches('/');
+    Ok(Some(if trimmed.is_empty() {
+        "/".to_string()
+    } else {
+        trimmed.to_string()
+    }))
+}
+
+/// Map a path the Windows dialog returned onto this WSL distro.
+fn from_windows_path(win: &str) -> Result<String, ApiError> {
+    let distro = std::env::var("WSL_DISTRO_NAME").unwrap_or_default();
+    match wsl_translate(win, &distro) {
+        Ok(Some(unix)) => Ok(unix),
+        Ok(None) => {
+            let out = std::process::Command::new("wslpath")
+                .arg("-u")
+                .arg(win)
+                .output()
+                .map_err(|err| ApiError::internal(format!("wslpath failed: {err}")))?;
+            let unix = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            if unix.is_empty() || !unix.starts_with('/') {
+                return Err(ApiError::bad_request(unreachable_folder(win)));
+            }
+            Ok(unix)
+        }
+        Err(message) => Err(ApiError::bad_request(message)),
+    }
+}
+
+fn unreachable_folder(win: &str) -> String {
+    format!(
+        "husk cannot open `{win}` from this WSL distro. Pick a folder under Linux \
+         or on a mounted Windows drive."
+    )
+}
+
+/// Translate a Windows path into one this WSL distro can open. `Ok(Some(path))`
+/// is a folder inside the distro, `Ok(None)` a Windows drive path (`wslpath -u`
+/// converts those), `Err` anything unreachable from here. `wslpath` handles only
+/// the drive form: handed `\\wsl.localhost\<distro>\…`, the shape the dialog
+/// returns for Linux folders, it echoes its input straight back.
+fn wsl_translate(win: &str, distro: &str) -> Result<Option<String>, String> {
+    let win = win.trim();
+    for prefix in ["\\\\wsl.localhost\\", "\\\\wsl$\\"] {
+        let Some(rest) = strip_prefix_ci(win, prefix) else {
+            continue;
+        };
+        let (name, tail) = rest.split_once('\\').unwrap_or((rest, ""));
+        if distro.is_empty() || !name.eq_ignore_ascii_case(distro) {
+            return Err(unreachable_folder(win));
+        }
+        return Ok(Some(format!("/{}", tail.replace('\\', "/"))));
+    }
+    if win.as_bytes().get(1) == Some(&b':') {
+        return Ok(None);
+    }
+    Err(unreachable_folder(win))
+}
+
+fn strip_prefix_ci<'a>(text: &'a str, prefix: &str) -> Option<&'a str> {
+    text.get(..prefix.len())
+        .filter(|head| head.eq_ignore_ascii_case(prefix))
+        .map(|_| &text[prefix.len()..])
+}
+
+/// Body of `POST /api/pick-folder`: the folder the user chose in the system
+/// dialog, or `None` when they cancelled it.
+#[derive(Serialize)]
+struct PickedFolder {
+    path: Option<String>,
+}
+
+async fn api_pick_folder() -> Result<Json<PickedFolder>, ApiError> {
+    let Some(picker) = native_picker() else {
+        return Err(ApiError::service_unavailable(
+            "this machine has no system folder picker; browse with the Husk picker instead",
+        ));
+    };
+    // The dialog blocks until the user answers it, which can be minutes.
+    let path = tokio::task::spawn_blocking(move || pick_native(picker))
+        .await
+        .map_err(|err| ApiError::internal(format!("folder picker task failed: {err}")))??;
+    Ok(Json(PickedFolder { path }))
 }
 
 /// Optional rescan body: `{ "roots": ["/path"] }` re-targets the scan at a
@@ -1839,5 +2051,23 @@ mod tests {
         // A bad path falls back to home (never panics / never empty path).
         assert!(!list_dirs(Some("/no/such/dir".into())).path.is_empty());
         std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn wsl_translate_maps_what_this_distro_can_open() {
+        let inside = |p: &str| wsl_translate(p, "Ubuntu");
+        assert_eq!(
+            inside("\\\\wsl.localhost\\Ubuntu\\home\\dev\\repo"),
+            Ok(Some("/home/dev/repo".into()))
+        );
+        // The legacy UNC form, and the distro name compares case-insensitively.
+        assert_eq!(inside("\\\\wsl$\\ubuntu\\srv"), Ok(Some("/srv".into())));
+        assert_eq!(inside("\\\\wsl.localhost\\Ubuntu"), Ok(Some("/".into())));
+        // Drive paths are `wslpath -u`'s job.
+        assert_eq!(inside("C:\\Users\\dev"), Ok(None));
+        // Another distro's filesystem and a network share are both unreachable.
+        assert!(inside("\\\\wsl.localhost\\Debian\\home").is_err());
+        assert!(inside("\\\\fileserver\\share").is_err());
+        assert!(wsl_translate("\\\\wsl$\\Ubuntu\\home", "").is_err());
     }
 }

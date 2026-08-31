@@ -8,13 +8,14 @@ import {
 } from "@huskdev/ui";
 import { CornerLeftUp, Folder, FolderOpen } from "lucide-react";
 import { useState } from "react";
-import { useDirs } from "@/lib/api";
+import { useDirs, usePickFolder } from "@/lib/api";
 // Display only; the real path is still what gets sent to the API.
 import { shortPath as short } from "@/lib/path";
 
 /** Mouse-driven local folder picker. Opens a modal that browses the machine one
  *  directory level at a time (served by `/api/dirs`) and hands the chosen
- *  absolute path back via `onPick`. No typing required. */
+ *  absolute path back via `onPick`. No typing required. Where the machine has a
+ *  folder dialog of its own, the modal also offers that instead. */
 export function DirPicker({
   current,
   disabled,
@@ -28,6 +29,7 @@ export function DirPicker({
   // Where the browser is pointing. Seeded from the current scan root each open.
   const [path, setPath] = useState<string | null>(current || null);
   const { data, isLoading } = useDirs(open ? path : null);
+  const native = usePickFolder();
 
   return (
     <Dialog
@@ -86,10 +88,39 @@ export function DirPicker({
           ))}
         </div>
 
+        {native.error && (
+          <p className="mt-2 text-xs text-danger" role="alert">
+            {native.error.message}
+          </p>
+        )}
+
         <DialogFooter>
           <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
             Cancel
           </Button>
+          {data?.native && (
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={native.isPending}
+              onClick={() =>
+                native.mutate(undefined, {
+                  onSuccess: ({ path: picked }) => {
+                    // No path means the user closed the system dialog: leave
+                    // this one open so they can browse here instead.
+                    if (picked) {
+                      onPick(picked);
+                      setOpen(false);
+                    }
+                  },
+                })
+              }
+            >
+              {native.isPending
+                ? "Waiting for your picker…"
+                : "Use system picker"}
+            </Button>
+          )}
           <Button
             variant="primary"
             size="sm"

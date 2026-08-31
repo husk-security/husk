@@ -94,6 +94,9 @@ pub(crate) fn walk(
     let git_dirs = Arc::new(Mutex::new(Vec::new()));
 
     for root in roots {
+        if options.cancel.load(std::sync::atomic::Ordering::Relaxed) {
+            break;
+        }
         if root.is_file() {
             walker.process(root);
             continue;
@@ -122,6 +125,11 @@ pub(crate) fn walk(
 
         builder.build_parallel().run(|| {
             Box::new(|entry| {
+                // A stop asked for mid-walk: quit the traversal and keep what
+                // the sink already collected.
+                if options.cancel.load(std::sync::atomic::Ordering::Relaxed) {
+                    return WalkState::Quit;
+                }
                 let Ok(entry) = entry else {
                     return WalkState::Continue;
                 };

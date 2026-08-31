@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::fmt;
 use std::path::PathBuf;
+use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, RwLock};
 
 /// husk is deliberately conservative: critical/high are reserved for genuinely
@@ -1007,6 +1008,11 @@ pub struct LiveScan {
     /// reader and nothing on the wire can observe a partial scan.
     #[serde(skip)]
     pending: Option<ScanReport>,
+    /// Raised by the stop endpoint and polled by the running scan (it travels
+    /// into the file walk through [`ScanOptions::cancel`]), so stopping keeps
+    /// whatever is already on display instead of killing a thread mid-write.
+    #[serde(skip)]
+    cancel: Arc<AtomicBool>,
 }
 
 impl LiveScan {
@@ -1033,6 +1039,7 @@ impl LiveScan {
             steps: Self::default_steps(),
             error: None,
             pending: None,
+            cancel: Arc::default(),
         }
     }
 
@@ -1049,6 +1056,7 @@ impl LiveScan {
             steps: Self::default_steps(),
             error: None,
             pending: None,
+            cancel: Arc::default(),
         }
     }
 
@@ -1068,6 +1076,7 @@ impl LiveScan {
             steps,
             error: None,
             pending: None,
+            cancel: Arc::default(),
         }
     }
 
@@ -1082,6 +1091,7 @@ impl LiveScan {
             return;
         }
         self.pending = Some(ScanReport::empty(roots));
+        self.cancel = Arc::default();
         self.running = true;
         self.current_task = "starting scan".to_string();
         self.started_at = Utc::now();
@@ -1113,6 +1123,37 @@ impl LiveScan {
         self.finished_at = Some(Utc::now());
     }
 
+    /// The flag the scan polls to learn it should stop. Handed to the scan at
+    /// startup, so a stop raised later is seen by the run in flight.
+    pub fn cancel_flag(&self) -> Arc<AtomicBool> {
+        self.cancel.clone()
+    }
+
+    /// Ask the running scan to stop. The scan itself calls [`LiveScan::stop`]
+    /// once it notices, which is why this only changes the task line.
+    pub fn request_stop(&mut self) {
+        if !self.running {
+            return;
+        }
+        self.cancel
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+        self.current_task = "stopping scan".to_string();
+    }
+
+    /// Whether a stop was asked for and not yet superseded by a new scan.
+    pub fn stop_requested(&self) -> bool {
+        self.cancel.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    /// The scan noticed the stop request: drop the half-built report and leave
+    /// what the user is looking at in place, as a failed scan does.
+    pub fn stop(&mut self) {
+        self.pending = None;
+        self.running = false;
+        self.current_task = "scan stopped".to_string();
+        self.finished_at = Some(Utc::now());
+    }
+
     /// Stop a failed scan and discard its half-built report, leaving whatever
     /// was already on display in place.
     pub fn fail(&mut self, error: String) {
@@ -1136,6 +1177,7 @@ impl LiveScan {
             steps: self.steps.clone(),
             error: self.error.clone(),
             pending: None,
+            cancel: self.cancel.clone(),
         }
     }
 }
@@ -1175,6 +1217,9 @@ pub struct ScanOptions {
     /// a temp dir): each has its own roots and would land as a separate,
     /// permanent "scan target" in the history surfaces.
     pub record_history: bool,
+    /// Polled by the file walk; raised by [`LiveScan::request_stop`]. Default
+    /// (never raised) for the one-shot scans that have no one to stop them.
+    pub cancel: Arc<AtomicBool>,
 }
 
 impl ScanOptions {
@@ -1188,6 +1233,7 @@ impl ScanOptions {
             include_home_inventory: false,
             max_file_bytes: 1_000_000,
             record_history: true,
+            cancel: Arc::default(),
         }
     }
 

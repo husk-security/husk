@@ -36,8 +36,7 @@ import { Feed } from "@/features/feed/Feed";
 import { FeedbackDialog } from "@/features/feedback/Feedback";
 import { Guide } from "@/features/guide/Guide";
 import { ScanHistory } from "@/features/history/ScanHistory";
-import { Inventory, Projects } from "@/features/projects/Projects";
-import { Scan } from "@/features/scan/Scan";
+import { InventoryScan, Projects } from "@/features/projects/Projects";
 import { DEMO_LIVE } from "@/features/tutorial/demoLive";
 import { Tutorial, tutorialUnseen } from "@/features/tutorial/Tutorial";
 import {
@@ -184,16 +183,12 @@ export default function App() {
         <TelemetryConsentCard />
         <div className="min-h-0 flex-1 overflow-y-auto">
           {tab === "scan" && (
-            <div className="flex min-w-0 flex-col lg:h-full">
-              <Inventory projects={machineProjects} />
-              <div className="min-h-0 flex-1">
-                <Scan
-                  onOpenGuide={openGuide}
-                  source="machine"
-                  demo={scanDemo}
-                />
-              </div>
-            </div>
+            <InventoryScan
+              projects={machineProjects}
+              source="machine"
+              onOpenGuide={openGuide}
+              demo={scanDemo}
+            />
           )}
           {tab === "feed" && <Feed onOpenGuide={openGuide} />}
           {tab === "projects" && (

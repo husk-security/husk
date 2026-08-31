@@ -6,6 +6,7 @@ import {
   SeverityBadge,
 } from "@huskdev/ui";
 import { FolderGit2 } from "lucide-react";
+import { useState } from "react";
 import {
   type Activity,
   type LiveScan,
@@ -140,7 +141,16 @@ const COLUMNS: DataTableColumn<Project>[] = [
  *  the machine's), with the
  *  identity that makes it a project (git remote, branch, activity) rather than
  *  a path. Row order is the server's project order. */
-export function Inventory({ projects }: { projects: Project[] }) {
+export function Inventory({
+  projects,
+  selected,
+  onSelect,
+}: {
+  projects: Project[];
+  /** The project whose findings the list below is filtered to, if any. */
+  selected?: string | null;
+  onSelect?: (id: string | null) => void;
+}) {
   if (projects.length === 0) return null;
   return (
     <details open className="shrink-0 border-b border-border px-6 py-4">
@@ -151,9 +161,54 @@ export function Inventory({ projects }: { projects: Project[] }) {
       {/* Capped so a home-wide scan's inventory scrolls instead of pushing the
           findings below the fold. */}
       <div className="mt-3 max-h-56 overflow-y-auto">
-        <DataTable columns={COLUMNS} rows={projects} rowKey={(p) => p.id} />
+        <DataTable
+          columns={COLUMNS}
+          rows={projects}
+          rowKey={(p) => p.id}
+          onRowClick={
+            onSelect && ((p) => onSelect(p.id === selected ? null : p.id))
+          }
+          isRowSelected={(p) => p.id === selected}
+        />
       </div>
     </details>
+  );
+}
+
+/** The inventory table over the findings list, sharing one repo filter: a
+ *  click on a project row filters the list below to it and highlights the row.
+ *  Both scan surfaces (a folder scan and the machine posture) are this. */
+export function InventoryScan({
+  projects,
+  source,
+  onOpenGuide,
+  demo,
+}: {
+  projects: Project[];
+  source: "project" | "machine";
+  onOpenGuide?: (taskId: string) => void;
+  demo?: LiveScan;
+}) {
+  const [repo, setRepo] = useState<string | null>(null);
+  // A folder scan lists the repos it found; the machine's own config locations
+  // are the Scan tab's subject and stay there.
+  const rows =
+    source === "machine"
+      ? projects
+      : projects.filter((p) => p.kind !== "config-location");
+  return (
+    <div className="flex min-w-0 flex-col lg:h-full">
+      <Inventory projects={rows} selected={repo} onSelect={setRepo} />
+      <div className="min-h-0 flex-1">
+        <Scan
+          onOpenGuide={onOpenGuide}
+          source={source}
+          demo={demo}
+          repo={repo}
+          onRepo={setRepo}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -183,11 +238,11 @@ export function Projects({
   }
 
   return (
-    <div className="flex min-w-0 flex-col lg:h-full">
-      <Inventory projects={projects} />
-      <div className="min-h-0 flex-1">
-        <Scan onOpenGuide={onOpenGuide} source="project" demo={demo} />
-      </div>
-    </div>
+    <InventoryScan
+      projects={projects}
+      source="project"
+      onOpenGuide={onOpenGuide}
+      demo={demo}
+    />
   );
 }

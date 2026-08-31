@@ -157,7 +157,10 @@ helper that wraps the `husk mcp install` CLI flow — in a terminal the CLI
 command itself is the equivalent surface, so the TUI intentionally has no
 matching tab. The same shape applies to feedback: the web Help menu's
 Send-feedback dialog wraps the `husk feedback` command, so the TUI has no
-dedicated feedback pane (the Account tab names the command).
+dedicated feedback pane (the Account tab names the command). And so does the
+system folder dialog the web picker can hand off to: a GUI dialog cannot answer
+a terminal that may be on another machine, so in the TUI the path is typed (or
+passed to `husk scan`).
 
 No TUI or web element may change size or move because dynamic scan content is
 long. Progress rows, provider rows, toolbar roots, finding metadata, and detail

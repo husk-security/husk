@@ -199,6 +199,10 @@ fn handle_event(app: &mut TuiApp, event: Event) -> bool {
             KeyCode::Char('g') => app.guide_cycle_grouping(),
             KeyCode::Char('x') => app.guide_open_fix(),
             KeyCode::Char('o') => app.open_source(),
+            // The terminal half of the web's Stop scan button. The snapshot
+            // shares the running scan's cancel flag, so raising it here is the
+            // same request the web endpoint makes.
+            KeyCode::Char('s') => app.live.request_stop(),
             KeyCode::Char('u') => app.start_dep_fix(false),
             // Shift-U: the PEP 668 opt-in, mirroring the web "upgrade anyway"
             // button. Deliberately its own key, never a fallback for `u`:
@@ -338,6 +342,9 @@ fn draw_footer(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, web_url: Option<
         }
         Tab::Guide => {
             "1-3/Tab switch · j/k move · h/l option · f filter · g group · x fix · q quit"
+        }
+        Tab::Scan if app.live.running => {
+            "1-3/Tab switch · j/k move · o open file · u fix dep · s stop scan · q quit"
         }
         Tab::Scan => "1-3/Tab switch · j/k move · o open file · u fix dep · q quit",
         Tab::Account => "1-3/Tab switch · j/k move · q quit",

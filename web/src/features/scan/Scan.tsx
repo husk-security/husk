@@ -15,6 +15,7 @@ import {
   RotateCw,
   Search,
   Sparkles,
+  Square,
   TriangleAlert,
   X,
 } from "lucide-react";
@@ -46,6 +47,7 @@ import {
   usePolicyStatus,
   useRescan,
   useRules,
+  useStopScan,
   useUnmuteFinding,
 } from "@/lib/api";
 import { groupByLabel } from "@/lib/collapse";
@@ -928,6 +930,8 @@ export function Scan({
   onOpenGuide,
   source = "project",
   demo,
+  repo: repoProp,
+  onRepo,
 }: {
   /** Open a Guide task. Scan is the evidence; the Guide is where a finding is
    *  acted on, so every finding detail offers this route. */
@@ -936,6 +940,10 @@ export function Scan({
    *  Same view either way; the machine scan has fixed roots (home), so its
    *  mode hides the folder picker and rescans through the machine endpoint. */
   source?: "project" | "machine";
+  /** The repo (project) filter. Lifted when the inventory table above the list
+   *  drives it; internal otherwise. */
+  repo?: string | null;
+  onRepo?: (id: string | null) => void;
   /** Canned sample data shown instead of live results (the first-run tour
    *  with no scan yet). Purely presentational; actions still hit the API. */
   demo?: LiveScanData;
@@ -953,6 +961,9 @@ export function Scan({
   const [sev, setSev] = useState<Severity | "all">("all");
   const [cat, setCat] = useState<string | null>(null);
   const [eco, setEco] = useState<string | null>(null);
+  const [ownRepo, setOwnRepo] = useState<string | null>(null);
+  const repo = repoProp ?? ownRepo;
+  const setRepo = onRepo ?? setOwnRepo;
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   // Each project owns its reveal/collapse state so a large repo cannot bury
   // the next one. All projects themselves remain visible in server order.
@@ -962,6 +973,7 @@ export function Scan({
   );
   const rescan = useRescan();
   const machineRescan = useMachineRescan();
+  const stopScan = useStopScan(machineMode);
   // The folder the next scan targets. Always the project slot's root, even in
   // machine mode: the machine scan's home root must never leak into it.
   const [scanDir, setScanDir] = useState("");
@@ -996,7 +1008,7 @@ export function Scan({
   useEffect(() => {
     setShownCount({});
     setCollapsedProjects(new Set());
-  }, [query, sev, cat, eco]);
+  }, [query, sev, cat, eco, repo]);
 
   const showMore = (owner: string, total: number, fallback: number) =>
     setShownCount((previous) => ({
@@ -1028,7 +1040,20 @@ export function Scan({
     ignoredFindings,
   } = useIgnoreState(report);
 
-  const visibleOpen = openFindings;
+  // The Projects tab is the repos in the scan. Machine-wide config findings
+  // (no owning project, or one of the config locations) are the Scan tab's
+  // subject, so they never enter this list or its counts.
+  const visibleOpen = useMemo(() => {
+    if (source === "machine") return openFindings;
+    const config = new Set(
+      (report?.projects ?? [])
+        .filter((p) => p.kind === "config-location")
+        .map((p) => p.id),
+    );
+    return openFindings.filter(
+      (f) => f.project_id && !config.has(f.project_id),
+    );
+  }, [openFindings, report?.projects, source]);
   // Solved = gone since the previous scan, straight off the server's delta:
   // verified evidence from a rescan, never an optimistic local claim.
   const solvedFindings = useMemo(
@@ -1063,7 +1088,8 @@ export function Scan({
     sev === "all" ? searched : searched.filter((g) => g.severity === sev);
   const byCat = cat === null ? bySev : bySev.filter((g) => g.category === cat);
   const byEco = eco === null ? byCat : byCat.filter((g) => g.ecosystem === eco);
-  const shown = byEco;
+  const byRepo = repo === null ? byEco : byEco.filter((g) => g.owner === repo);
+  const shown = byRepo;
 
   // Each menu counts groups over the slice its own value does not constrain, so
   // picking one option never hides the counts you would switch to.
@@ -1162,6 +1188,18 @@ export function Scan({
     return (owner: string) => byId.get(owner) ?? shortPath(owner);
   }, [report?.projects]);
 
+  const repoOptions = useMemo(() => {
+    const counts = tally(byEco, (g) => g.owner);
+    return [...counts]
+      .sort((a, b) => b[1] - a[1])
+      .map(([id, count]) => ({
+        id,
+        label: projectPath(id),
+        count,
+        mono: true,
+      }));
+  }, [byEco, projectPath]);
+
   const exploited = groups.filter((g) => g.exploit?.kev).length;
 
   // Advisory sources that produced no verdict this scan (failed requests, or
@@ -1176,12 +1214,17 @@ export function Scan({
     return c;
   }, [visibleOpen]);
   const filtered =
-    query.trim() !== "" || sev !== "all" || cat !== null || eco !== null;
+    query.trim() !== "" ||
+    sev !== "all" ||
+    cat !== null ||
+    eco !== null ||
+    repo !== null;
   const clearFilters = () => {
     setQuery("");
     setSev("all");
     setCat(null);
     setEco(null);
+    setRepo(null);
   };
 
   // Nothing fetched yet (first paint; a large report can take a moment to
@@ -1253,24 +1296,38 @@ export function Scan({
                     onPick={pickDir}
                   />
                 )}
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={startRescan}
-                  disabled={running || rescanPending}
-                >
-                  <RotateCw
-                    size={14}
-                    className={cn((running || rescanPending) && "animate-spin")}
-                  />
-                  {running || rescanPending
-                    ? "Scanning…"
-                    : idle
-                      ? machineMode
-                        ? "Scan machine"
-                        : "Scan"
-                      : "Rescan"}
-                </Button>
+                {/* One control slot: while a scan runs it stops that scan,
+                    otherwise it starts one. */}
+                {running ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => stopScan.mutate()}
+                    disabled={stopScan.isPending}
+                  >
+                    <Square size={13} fill="currentColor" />
+                    {stopScan.isPending ? "Stopping…" : "Stop scan"}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={startRescan}
+                    disabled={rescanPending}
+                  >
+                    <RotateCw
+                      size={14}
+                      className={cn(rescanPending && "animate-spin")}
+                    />
+                    {rescanPending
+                      ? "Scanning…"
+                      : idle
+                        ? machineMode
+                          ? "Scan machine"
+                          : "Scan"
+                        : "Rescan"}
+                  </Button>
+                )}
               </div>
             }
           />
@@ -1363,6 +1420,14 @@ export function Scan({
                   options={ecoGroups.flatMap((g) => g.options)}
                   groups={ecoGroups}
                   onChange={setEco}
+                />
+              )}
+              {repoOptions.length > 1 && (
+                <FilterMenu
+                  label="All repos"
+                  value={repo}
+                  options={repoOptions}
+                  onChange={setRepo}
                 />
               )}
               {filtered && (
