@@ -18,7 +18,7 @@
     "@huskdev/tokens": "^0.2.0",
     "@huskdev/ui": "^0.4.0",
     "@tanstack/react-query": "^5.102.8",
-    "lucide-react": "^1.35.0",
+    "lucide-react": "^1.39.0",
     "react": "^19.2.8",
     "react-diff-view": "^3.3.3",
     "react-dom": "^19.2.8"
