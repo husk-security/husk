@@ -6,7 +6,10 @@ to upgrade.
 
 ## Unreleased
 
+- Pick a scan folder with your machine's own folder dialog, or keep browsing in Husk's picker
 - Say where feedback goes, and link the privacy notice, before you send it
+- Filter findings by repo, either from the toolbar or by clicking a project row
+- Stop a running scan: the Stop scan button in the web UI, `s` in the TUI
 
 ## 0.1.1 - 2026-08-27
 

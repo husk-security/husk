@@ -61,7 +61,7 @@ pub fn spawn_scan(options: ScanOptions, live: SharedLiveScan) -> tokio::task::Jo
         let started = Instant::now();
         if let Err(err) = run_scan_live(options, live.clone()).await {
             live.with_write(|state| state.fail(err.to_string()));
-        } else {
+        } else if !live.with_read(LiveScan::stop_requested) {
             let report = live.with_read(|state| state.report.clone());
             let _ = crate::cache::save_latest_report(&report);
             crate::cloud::telemetry::record_scan(&report, started.elapsed());
@@ -175,8 +175,17 @@ impl LivePublisher {
     }
 }
 
-pub async fn run_scan_live(options: ScanOptions, live: SharedLiveScan) -> Result<()> {
+pub async fn run_scan_live(mut options: ScanOptions, live: SharedLiveScan) -> Result<()> {
     let setup_started = Instant::now();
+    // The walk polls this flag per file; the stage boundaries below poll it
+    // between walks. A stop keeps what has already been published.
+    options.cancel = live.with_read(LiveScan::cancel_flag);
+    let stopped = || {
+        options.cancel.load(Ordering::Relaxed) && {
+            live.with_write(LiveScan::stop);
+            true
+        }
+    };
     let roots = live.with_read(|state| state.working_ref().roots.clone());
     // Fresh system context for this scan. Collected here (once per scan) rather
     // than in `LiveScan::new`, so cached-report views never pay for the
@@ -231,6 +240,9 @@ pub async fn run_scan_live(options: ScanOptions, live: SharedLiveScan) -> Result
         )
     }];
 
+    if stopped() {
+        return Ok(());
+    }
     let quick_findings = quick_pass_stage(
         &live,
         &options,
@@ -239,6 +251,9 @@ pub async fn run_scan_live(options: ScanOptions, live: SharedLiveScan) -> Result
         &mut benchmarks,
         &mut timings,
     );
+    if stopped() {
+        return Ok(());
+    }
     let (packages, mut findings) = files_stage(
         &live,
         &options,
@@ -249,6 +264,9 @@ pub async fn run_scan_live(options: ScanOptions, live: SharedLiveScan) -> Result
         &mut benchmarks,
         &mut timings,
     );
+    if stopped() {
+        return Ok(());
+    }
     let provider_task = spawn_provider_queries(&live, &options, &packages);
     home_inventory_stage(
         &live,
@@ -259,16 +277,30 @@ pub async fn run_scan_live(options: ScanOptions, live: SharedLiveScan) -> Result
         &mut benchmarks,
         &mut timings,
     );
-    let providers = provider_stage(
-        &live,
-        &publisher,
-        provider_task,
-        &packages,
-        &mut findings,
-        &mut benchmarks,
-        &mut timings,
-    )
-    .await;
+    if stopped() {
+        return Ok(());
+    }
+    // The online stage is one long wait, so a stop asked for during it must
+    // not sit until every provider answers: drop the stage's future instead.
+    let providers = tokio::select! {
+        biased;
+        () = wait_for_cancel(&options.cancel) => {
+            live.with_write(LiveScan::stop);
+            return Ok(());
+        }
+        providers = provider_stage(
+            &live,
+            &publisher,
+            provider_task,
+            &packages,
+            &mut findings,
+            &mut benchmarks,
+            &mut timings,
+        ) => providers,
+    };
+    if stopped() {
+        return Ok(());
+    }
     finalize_stage(
         &live,
         &options,
@@ -540,6 +572,14 @@ fn home_inventory_stage(
             ProgressState::Done,
             "skipped by flag",
         );
+    }
+}
+
+/// Resolves once the scan is asked to stop; never otherwise. Polled rather than
+/// notified: a stop is a once-per-scan human action, not a hot path.
+async fn wait_for_cancel(cancel: &std::sync::atomic::AtomicBool) {
+    while !cancel.load(Ordering::Relaxed) {
+        tokio::time::sleep(std::time::Duration::from_millis(150)).await;
     }
 }
 
@@ -1309,6 +1349,22 @@ fn roots_summary(roots: &[PathBuf]) -> String {
 mod tests {
     use super::*;
     use crate::model::Severity;
+
+    /// A stop raised before the scan starts must end it at the first stage
+    /// boundary, leaving the previous view in place rather than a half report.
+    #[tokio::test]
+    async fn a_stop_request_ends_the_scan_and_keeps_what_was_on_display() {
+        let options = ScanOptions::new(vec![PathBuf::from("tst")]);
+        let live = new_live_scan(&options).unwrap();
+        live.with_write(LiveScan::request_stop);
+
+        run_scan_live(options, live.clone()).await.unwrap();
+
+        let state = live.snapshot();
+        assert!(!state.running);
+        assert_eq!(state.current_task, "scan stopped");
+        assert!(state.report.findings.is_empty());
+    }
 
     /// A coordinate finding as one feed reported it.
     fn advisory(id: &str, source: &str, severity: Severity, cve: &str) -> Finding {
