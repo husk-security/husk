@@ -6,6 +6,8 @@ to upgrade.
 
 ## Unreleased
 
+## 0.1.2 - 2026-09-11
+
 - Pick a scan folder with your machine's own folder dialog, or keep browsing in Husk's picker
 - Say where feedback goes, and link the privacy notice, before you send it
 - Filter findings by repo, either from the toolbar or by clicking a project row
